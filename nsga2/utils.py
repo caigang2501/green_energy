@@ -2,6 +2,10 @@ from nsga2.population import Population
 import random
 
 
+# num_of_tour_particips： 用于选取父类的子集个数
+
+
+
 class NSGA2Utils:
 
     def __init__(self, problem, num_of_individuals=100,

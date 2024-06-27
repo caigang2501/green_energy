@@ -6,6 +6,8 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import minimum_spanning_tree
 
+result_path = ''
+
 
 def cmeans(data, c, m, max_iter=100, tol=1e-4):
     # 初始化隶属度矩阵
@@ -111,7 +113,7 @@ def plot_clusters(data, centers, U, title):
     plt.title(title)
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
-    plt.savefig('machlearning/ml/'+title)
+    plt.savefig(result_path+title)
     plt.show()
 
 def plot_clusters_with_mst(data, centers, U, title):
@@ -139,7 +141,7 @@ def plot_clusters_with_mst(data, centers, U, title):
                 plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'k-', lw=0.5)
                 total_length += edge[2]['weight']  
 
-    plt.savefig('machlearning/ml/'+title)
+    plt.savefig(result_path+title)
     plt.show()
     return total_length
 
@@ -171,7 +173,7 @@ def plot_clusters_with_mst1(data, centers, U, title):
                 total_length += edge[2]['weight'] 
 
 
-    plt.savefig('machlearning/ml/'+title)
+    plt.savefig(result_path+title)
     plt.show()
     return total_length
 
