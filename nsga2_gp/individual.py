@@ -5,7 +5,7 @@ class Individual(object):
         self.crowding_distance = None
         self.domination_count = None
         self.dominated_solutions = None
-        self.features = None
+        self.features = []
         self.objectives = None
 
     def __eq__(self, other):

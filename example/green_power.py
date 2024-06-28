@@ -30,7 +30,7 @@ def f2(individual:Individual):
     return elic_buy*A_CO2
 
 def solve():
-    problem = Problem(objectives=[f1,f2], num_of_variables=24, variables_range=[(0,3)])
+    problem = Problem(objectives=[f1,f2])
     evo = Evolution(problem,10000,15)
     evol = evo.evolve()
     with pd.ExcelWriter(f'{save_path}ans.xlsx') as writer:

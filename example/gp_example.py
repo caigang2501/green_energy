@@ -22,11 +22,11 @@ SELL_PRICE = 0.4
 
 save_path = 'example/result/'
 
-def calculate(individual:Individual,heat_rest = 960):
+def calculate(individual:Individual):
     cost_money = 0
     i = 0
     ans = []
-    # heat_rest = 960
+    heat_rest = 960
     for peb in individual.features:
         a,b,c,d,e,f,g = table_p[i]# '时刻','电负荷','热负荷','冷负荷','风电出力上限','光伏出力上限','外购电价'
         pwt,ppv,qch,qdis = e,f,0,0
@@ -46,11 +46,11 @@ def calculate(individual:Individual,heat_rest = 960):
         ans.append([a,pwt,ppv,peb,qch,qdis,heat_rest,elic_exchange])
         i += 1
     individual.ans = ans
-    return cost_money,heat_rest
+    return cost_money
 
 def f1(individual:Individual):
-    # calculate(individual)
-    # adjust(individual)
+    calculate(individual)
+    adjust(individual)
     return calculate(individual)
 
 def f2(individual:Individual):
@@ -59,7 +59,7 @@ def f2(individual:Individual):
 
 
 def solve():
-    problem = Problem(objectives=[f1,f2], num_of_variables=24, variables_range=[(0,3)])
+    problem = Problem(objectives=[f1,f2])
     evo = Evolution(problem,10000,15)
     evol = evo.evolve()
     with pd.ExcelWriter(f'{save_path}ans.xlsx') as writer:
@@ -87,28 +87,9 @@ def test():
     name = ' '.join([str(round(cost)) for cost in individual.objectives])
     df_ansx.to_csv(f'{save_path}{name}.csv',index=False)
 
-def start_val_test():
-    problem = Problem(objectives=[f1,f2], num_of_variables=24, variables_range=[(0,3)])
-    individual = problem.generate_individual()
-    ht = 960
-    for i in range(100):
-        money,ht_ = calculate(individual,heat_rest=ht)
-        ht = ht-(ht_-ht)/100
-        print(ht)
-
-def start_val_test1():
-    problem = Problem(objectives=[f1,f2], num_of_variables=24, variables_range=[(0,3)])
-    individual = problem.generate_individual()
-    ht = 0
-    for i in range(50):
-        money,ht_ = calculate(individual,heat_rest=ht)
-        print(ht,ht_)
-        ht += 40
-        
 if __name__=='__main__':
-    # solve()
+    solve()
     # test()
-    start_val_test1()
 
 
 
