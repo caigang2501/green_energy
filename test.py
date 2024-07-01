@@ -1,13 +1,10 @@
-import random
+import random,math
 
+a = (1,2,3)
+b = []
+b.extend(a)
 
-
-a = [1,2,3,4]
-
-r = random.randint(1,3)
-
-print(r)
-
+print(b)
 
 
 
