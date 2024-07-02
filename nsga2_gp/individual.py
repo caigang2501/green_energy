@@ -5,6 +5,7 @@ class Individual(object):
         self.crowding_distance = None
         self.domination_count = None
         self.dominated_solutions = None
+        self.feature_plan = []
         self.feature_run = []
         self.features = []
         self.objectives = None

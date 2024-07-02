@@ -1,25 +1,56 @@
-from nsga2.population import Population
+from nsga2_gp.population import Population
+from nsga2_gp.individual import Individual
 import random
 
 
 # num_of_tour_particips： 用于选取父类的子集个数
 
-def adjust(individual):
-    heat_rest_p = individual.ans[23][6]
-    i = -1
-    while heat_rest_p<960:
-        delt_heat = (QEB_MAX-individual.features[i])*N_SH*(1-T_SH)**(-i-1)
-        if delt_heat+heat_rest_p<960:
-            heat_rest_p += delt_heat
-            individual.features[i] = QEB_MAX
-            i -= 1
-        else:
-            a = 0.05
-            while heat_rest_p+delt_heat*a<960:
-                a += 0.05
-            heat_rest_p += delt_heat*a
-            individual.features[i] += (QEB_MAX-individual.features[i])*a
-        # individual.ans[i][3] = individual.features[i]
+def adjust(individual:Individual):
+    eng_start = individual.feature_run[0][11:15]
+    for s in range(3):
+        elic_rest,heat_rest,cold_rest,gas_rest = individual.feature_run[24*(s+1)-1][11:15]
+
+        # 气
+        if gas_rest<eng_start[3]:
+            individual.feature_run[-2] += eng_start[3]-gas_rest
+
+        i = -1
+        while eng_rest<start[engi]:
+            if delt_heat+heat_rest_p<960:
+                heat_rest_p += delt_heat
+                individual.features[i] = QEB_MAX
+                i -= 1
+            else:
+                a = 0.05
+                while heat_rest_p+delt_heat*a<960:
+                    a += 0.05
+                heat_rest_p += delt_heat*a
+                individual.features[i] += (QEB_MAX-individual.features[i])*a
+            # individual.ans[i][3] = individual.features[i]
+        while eng_rest<start[engi]:
+            if delt_heat+heat_rest_p<960:
+                heat_rest_p += delt_heat
+                individual.features[i] = QEB_MAX
+                i -= 1
+            else:
+                a = 0.05
+                while heat_rest_p+delt_heat*a<960:
+                    a += 0.05
+                heat_rest_p += delt_heat*a
+                individual.features[i] += (QEB_MAX-individual.features[i])*a
+            # individual.ans[i][3] = individual.features[i]
+        while eng_rest<start[engi]:
+            if delt_heat+heat_rest_p<960:
+                heat_rest_p += delt_heat
+                individual.features[i] = QEB_MAX
+                i -= 1
+            else:
+                a = 0.05
+                while heat_rest_p+delt_heat*a<960:
+                    a += 0.05
+                heat_rest_p += delt_heat*a
+                individual.features[i] += (QEB_MAX-individual.features[i])*a
+            # individual.ans[i][3] = individual.features[i]
     return individual
 
 def sutable():
