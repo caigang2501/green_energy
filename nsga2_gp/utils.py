@@ -22,6 +22,10 @@ def adjust(individual):
         # individual.ans[i][3] = individual.features[i]
     return individual
 
+def sutable():
+    # TODO
+    return True
+
 class NSGA2Utils:
 
     def __init__(self, problem, num_of_individuals=100,
@@ -98,9 +102,13 @@ class NSGA2Utils:
             parent2 = parent1
             while parent1 == parent2:
                 parent2 = self.__tournament(population)
-            child1, child2 = self.__crossover(parent1, parent2)
-            self.__mutate(child1)
-            self.__mutate(child2)
+            while True:
+                child1, child2 = self.__crossover(parent1, parent2)
+                self.__mutate(child1)
+                self.__mutate(child2)
+                if sutable(child1) and sutable(child2):
+                    break
+
             self.problem.calculate_objectives(child1)
             self.problem.calculate_objectives(child2)
             children.append(child1)
@@ -114,7 +122,7 @@ class NSGA2Utils:
         num_of_features = len(child1.features)
         genes_indexes = range(num_of_features)
         for i in genes_indexes:
-            beta = self.__get_beta()
+            beta = self.__get_beta() # nomal 期望：1.0 方差：0.07
             x1 = (individual1.features[i] + individual2.features[i]) / 2
             x2 = abs((individual1.features[i] - individual2.features[i]) / 2)
             child1.features[i] = x1 + beta * x2

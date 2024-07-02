@@ -12,13 +12,45 @@ import pandas as pd
 save_path = 'example/result/'
 
 def calculate(individual:Individual):
-    cost_money = 0
-    i = 0
-    ans = []
-    for peb in individual.features:
-        pass
-    individual.ans = ans
-    return cost_money
+    for season in [constent.SUMMER_LOAD,constent.EXCESSIVE_LOAD,constent.WINTER_LOAD]:
+        run = [[],[],[],[],[]] # 输入功率
+        for le,lh,lc in zip(season[0],season[1],season[2]):
+            run[3] = energy_rest.copy()
+
+            # '地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机'
+            while True:
+                upl = individual.feature_plan[2]
+                run[2] = [gr()*upl[0],gr()*upl[1],gr()*upl[2],gr()*upl[3]]
+                if sum(run[2])+energy_rest[2]>lc:
+                    run[1][3] -= run[2][0]
+                    run[1][4] -= run[2][1]
+                    energy_rest[2] += sum(run[2])-lc
+                    break
+
+            # '燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
+            while True:
+                upl = individual.feature_plan[1]
+                run[1] = [gr()*upl[0],gr()*upl[1],gr()*upl[2],gr()*upl[3],gr()*upl[4]]
+                
+                if sum(run[1])-run[2][3]+energy_rest[1]>lh:
+                    energy_rest[1] += sum(run[1])-run[2][3]-lh
+                    break
+            
+            # CH4
+            gas_cost = run[1][0]+run[1][1]
+            bdl = 0 if energy_rest[3]>gas_cost else gas_cost-energy_rest[3]
+            run[4][1] = random.uniform(bdl,individual.feature_plan[-1]-energy_rest[3]+gas_cost)
+            energy_rest[3] += run[4][1]-gas_cost
+
+            # '风电','光伏','热电产电'
+            energy_chg = gr()*energy_start[0]*4-energy_rest
+            energy_rest[0] += energy_chg
+            elic_cost = sum(run[2][:3])+sum(run[1][2:])+le-run[1][1]+energy_chg
+            upl = individual.feature_plan[0]
+            run[0] = [gr()*upl[0],gr()*upl[1],run[1][1]]
+            run[4][0] = -(sum(run[0])-elic_cost)
+
+            individual.feature_run.append(deepcopy(run))
 
 def f1(individual:Individual):
     calculate(individual)
