@@ -5,10 +5,13 @@ class Individual(object):
         self.crowding_distance = None
         self.domination_count = None
         self.dominated_solutions = None
+        self.objectives = None
+
+        self.child = False
         self.feature_plan = []
         self.feature_run = []
         self.features = []
-        self.objectives = None
+        self.dis_co2 = 0
 
     def __eq__(self, other):
         if isinstance(self, other.__class__):

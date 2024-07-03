@@ -36,6 +36,8 @@ def calculate(individual:Individual):
         else:
             qdis = c - peb*N_EB
             heat_rest -= qdis/N_SH
+        
+        # +卖 -买
         elic_exchange = pwt+ppv-(b+peb)
 
         if pwt+ppv-(b+peb)>0:

@@ -142,6 +142,8 @@ class NSGA2Utils:
             x2 = abs((individual1.features[i] - individual2.features[i]) / 2)
             child1.features[i] = x1 + beta * x2
             child2.features[i] = x1 - beta * x2
+        
+        child1.child,child2.child = True,True
         return child1, child2
 
     def __get_beta(self):

@@ -75,14 +75,16 @@ class Problem:
                 energy_rest[3] = (energy_rest[3]+gas_chg)*(1-sd['gas'][2])
 
                 # '风电','光伏','热电产电'
-                elic_chg = ft[12]*energy_start[0]*3-energy_rest[0]
+                # elic_chg = ft[12]*energy_start[0]*3-energy_rest[0]
+                elic_chg = ft[12]*energy_start[0]*3*0.8-(energy_rest[0]-energy_start[0]*3*0.2)
                 energy_rest[0] += (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
                 elic_o = elic_chg/sd['elic'][0] if elic_chg>0 else elic_chg*sd['elic'][1]
                 elic_cost = sum(run_out[2][:3])+sum(run_out[1][2:])+le-run_out[1][1]+elic_o
                 run[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
                 run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[1]]
 
-                run[4][1] = -(sum(run_out[0])-elic_cost) # '买卖电'
+                # rest_elic +卖 -买
+                run[4][1] = sum(run_out[0])-elic_cost # '买卖电'
 
                 # ft:'风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','地源热泵制冷比例','空气源热泵制冷比例','充放然气','充放电'
                 individual.features.extend(ft.copy())
@@ -92,7 +94,11 @@ class Problem:
 
                 # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
                 plan.append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
-            
+        
+        sum_plan = [sum(column) for column in zip(*plan)]  
+        ch4_cost = sum_plan[2]+sum_plan[3]
+        elic_buy = sum([-row[-1] if row[-1]<0 else 0 for row in individual.feature_run])
+        individual.dis_co2 = constent.CH4_CO2*ch4_cost + constent.ELIC_CO2*elic_buy
         individual.feature_plan = [max(column) for column in zip(*plan)]
         # adjust(individual)
 
