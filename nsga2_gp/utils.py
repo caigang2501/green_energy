@@ -3,7 +3,6 @@ from nsga2_gp.individual import Individual
 import random
 
 
-# num_of_tour_particips： 用于选取父类的子集个数
 
 def adjust(individual:Individual):
     eng_start = individual.feature_run[0][11:15]
@@ -15,43 +14,27 @@ def adjust(individual:Individual):
             individual.feature_run[-2] += eng_start[3]-gas_rest
 
         i = -1
-        while eng_rest<start[engi]:
-            if delt_heat+heat_rest_p<960:
-                heat_rest_p += delt_heat
-                individual.features[i] = QEB_MAX
-                i -= 1
-            else:
-                a = 0.05
-                while heat_rest_p+delt_heat*a<960:
-                    a += 0.05
-                heat_rest_p += delt_heat*a
-                individual.features[i] += (QEB_MAX-individual.features[i])*a
-            # individual.ans[i][3] = individual.features[i]
-        while eng_rest<start[engi]:
-            if delt_heat+heat_rest_p<960:
-                heat_rest_p += delt_heat
-                individual.features[i] = QEB_MAX
-                i -= 1
-            else:
-                a = 0.05
-                while heat_rest_p+delt_heat*a<960:
-                    a += 0.05
-                heat_rest_p += delt_heat*a
-                individual.features[i] += (QEB_MAX-individual.features[i])*a
-            # individual.ans[i][3] = individual.features[i]
-        while eng_rest<start[engi]:
-            if delt_heat+heat_rest_p<960:
-                heat_rest_p += delt_heat
-                individual.features[i] = QEB_MAX
-                i -= 1
-            else:
-                a = 0.05
-                while heat_rest_p+delt_heat*a<960:
-                    a += 0.05
-                heat_rest_p += delt_heat*a
-                individual.features[i] += (QEB_MAX-individual.features[i])*a
+        # while eng_rest<start[engi]:
+        #     if delt_heat+heat_rest_p<960:
+        #         heat_rest_p += delt_heat
+        #         individual.features[i] = QEB_MAX
+        #         i -= 1
+        #     else:
+        #         a = 0.05
+        #         while heat_rest_p+delt_heat*a<960:
+        #             a += 0.05
+        #         heat_rest_p += delt_heat*a
+        #         individual.features[i] += (QEB_MAX-individual.features[i])*a
             # individual.ans[i][3] = individual.features[i]
     return individual
+
+def feature2calcu(feature):
+    feature_calcu = {'summer':[],'excessive':[],'winter':[]}
+    for i,season in enumerate(['summer','excessive','winter']):
+        for j in range(24):
+            index = i*13*24+13*j
+            feature_calcu[season].append(feature[index:index+13])
+    return feature_calcu
 
 def sutable():
     # TODO
@@ -59,7 +42,8 @@ def sutable():
 
 class NSGA2Utils:
 
-    def __init__(self, problem, num_of_individuals=100,
+    # num_of_tour_particips： 用于选取父类的子集个数
+    def __init__(self, problem, num_of_individuals=50,
                  num_of_tour_particips=2, tournament_prob=0.9, crossover_param=2, mutation_param=5):
 
         self.problem = problem
@@ -171,13 +155,13 @@ class NSGA2Utils:
         for gene in range(num_of_features):
             u, delta = self.__get_delta() # delta 期望：0,标准差：0.2
             if u < 0.5:
-                child.features[gene] += delta * (child.features[gene] - self.problem.variables_range[gene][0])
+                child.features[gene] += delta * (child.features[gene] - self.problem.variables_range[0])
             else:
-                child.features[gene] += delta * (self.problem.variables_range[gene][1] - child.features[gene])
-            if child.features[gene] < self.problem.variables_range[gene][0]:
-                child.features[gene] = self.problem.variables_range[gene][0]
-            elif child.features[gene] > self.problem.variables_range[gene][1]:
-                child.features[gene] = self.problem.variables_range[gene][1]
+                child.features[gene] += delta * (self.problem.variables_range[1] - child.features[gene])
+            if child.features[gene] < self.problem.variables_range[0]:
+                child.features[gene] = self.problem.variables_range[0]
+            elif child.features[gene] > self.problem.variables_range[1]:
+                child.features[gene] = self.problem.variables_range[1]
 
     def __get_delta(self):
         u = random.random()
