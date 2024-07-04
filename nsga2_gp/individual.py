@@ -7,11 +7,12 @@ class Individual(object):
         self.dominated_solutions = None
         self.objectives = None
 
-        self.child = False
+        self.calcuted = True
         self.feature_plan = []
         self.feature_run = []
         self.features = []
         self.dis_co2 = 0
+        self.benefit = {'be':0,'se':0,'bg':0}
 
     def __eq__(self, other):
         if isinstance(self, other.__class__):

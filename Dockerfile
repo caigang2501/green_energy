@@ -1,5 +1,5 @@
 # 使用一个基础的 Python 镜像
-FROM green_eng
+FROM python
 
 # 设置工作目录
 WORKDIR /green_energy
@@ -21,12 +21,12 @@ ENV FLASK_APP=appname.app.py
 CMD ["flask", "run", "--host=0.0.0.0"]
 
 
-# docker build -t danger_dtc1 .
-# docker save -o danger_env.tar danger_dtc_env
+# docker build -t green_energy .
+# docker save -o green_energy.tar green_energy
 # scp danger_env.tar root@10.83.40.175:caigang
-# docker load -i danger_dtc.tar
-# docker run -d -p 8088:5000 danger_dtc1
-# docker run -it -p 5010:5000 danger_dtc bash
+# docker load -i green_energy.tar
+# docker run -d -p 8088:5000 green_energy
+# docker run -it -p 5010:5000 green_energy bash
 
 # docker exec -it <e2545f0769ed> uname -m
 # gunicorn -w 4 -b 0.0.0.0:5000 your_flask_app:app
