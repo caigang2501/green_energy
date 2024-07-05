@@ -16,7 +16,7 @@ def mid_long_year():
 @bp.route("/excel", methods=['POST'])
 def mid_lon():
     hashrate = request.get_json()['hashrate']
-    result = main.solve(hashrate)
+    main.solve(hashrate)
     file_path = os.getcwd()+'/example/result/ans.xlsx'
     return send_file(file_path, as_attachment=True)
 

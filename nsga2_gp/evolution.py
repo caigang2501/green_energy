@@ -1,5 +1,6 @@
 from nsga2_gp.utils import NSGA2Utils
 from nsga2_gp.population import Population
+from example import constent
 from tqdm import tqdm
 
 
@@ -39,4 +40,6 @@ class Evolution:
             for front in self.population.fronts:
                 self.utils.calculate_crowding_distance(front)
             children = self.utils.create_children(self.population)
+
+            constent.objectives.append(returned_population.fronts[0][0].objectives[0]//10*5)
         return returned_population.fronts[0]

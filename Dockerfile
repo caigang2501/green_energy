@@ -1,23 +1,17 @@
-# 使用一个基础的 Python 镜像
-FROM python
+FROM gp_env
 
-# 设置工作目录
 WORKDIR /green_energy
-# 复制当前目录下的所有文件到工作目录
+
 COPY . .
 
-# 安装依赖
-#RUN pip install --ignore-installed -r requirements.txt
+# COPY requirements.txt .
 # RUN pip install -r requirements.txt
-# RUN chmod 644 /data
+# RUN pip install numpy scipy matplotlib pandas tqdm openpyxl
 
-# 暴露服务运行的端口
 EXPOSE 5000
 
-# 定义环境变量
 ENV FLASK_APP=appname.app.py
 
-# 运行 Flask 服务
 CMD ["flask", "run", "--host=0.0.0.0"]
 
 

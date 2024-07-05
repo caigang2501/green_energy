@@ -1,6 +1,5 @@
-import sys,os,random
+import sys,os
 import pandas as pd
-import matplotlib.pyplot as plt
 
 sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -39,7 +38,7 @@ def f(individual:Individual):
     return f1(individual)+f2(individual)
 
 def solve(hashrate):
-    problem = Problem(objectives=[f1,f2])
+    problem = Problem(objectives=[f])
     evo = Evolution(problem,100,30)
     evol = evo.evolve()
     with pd.ExcelWriter(f'{save_path}ans.xlsx') as writer:

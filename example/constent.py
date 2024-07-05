@@ -1,6 +1,7 @@
 import re
 
 repeat = 0
+objectives = []
 
 a = ''
 result = re.sub(r'\s+', ',', a)
@@ -11,7 +12,6 @@ print(result)
 
 ELIC_CO2 = 88.43
 CH4_CO2 = 221
-# SPECIAL_DAYS = {'summer':120,'excessive':123,'winter':122}
 SPECIAL_DAYS = {'summer':1,'excessive':1,'winter':1}
 
 FEATURE_RUN_COLUME = ('time','电负荷','热负荷','冷负荷','风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电')

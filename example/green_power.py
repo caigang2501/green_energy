@@ -1,4 +1,4 @@
-import sys,os,random
+import sys,os
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -39,7 +39,7 @@ def f(individual:Individual):
     return f1(individual)+f2(individual)
 
 def solve(hashrate):
-    problem = Problem(objectives=[f1,f2])
+    problem = Problem(objectives=[f1])
     evo = Evolution(problem,100,30)
     evol = evo.evolve()
     func = [i.objectives for i in evol]
@@ -50,13 +50,24 @@ def solve(hashrate):
             name = ' '.join([str(round(cost)) for cost in individual.objectives])
             df_ansx.to_excel(writer, sheet_name=name, index=False)
     function1 = [i[0] for i in func]
-    function2 = [i[1] for i in func]
-    plt.xlabel('cost_money', fontsize=15)
-    plt.ylabel('DIS_CO2', fontsize=15)
-    plt.scatter(function1, function2)
-    plt.savefig(f'{save_path}ans.png')
+    if len(func)==1:
+        print(constent.objectives[0],constent.objectives[-1])
+        plt.figure()
+        plt.plot(constent.objectives, marker='o')
+        plt.title('Line Chart Example')
+        plt.xlabel('Index')
+        plt.ylabel('Value')
+    else:
+        function2 = [i[1] for i in func]
+        plt.xlabel('cost_money', fontsize=15)
+        plt.ylabel('DIS_CO2', fontsize=15)
+        plt.scatter(function1, function2)
+        plt.savefig(f'{save_path}ans.png')
+    
     plt.show()
+
     return evol[0].feature_run
 
 if __name__=='__main__':
-    solve()
+    hashrate = constent.SUMMER_LOAD
+    solve(hashrate)
