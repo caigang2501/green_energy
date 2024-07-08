@@ -8,11 +8,10 @@ variables_range = [(0,up[0]),(0,up[1]),(0,up[2]),(0,up[3]),(0,up[4]),(0,up[5]),(
 
 # print(len(FEATURE_NAME),len(variables_range))
 
-a = [1,2,3]
+for i in range(3):
+    pass
 
-b = [3,4,5]
-b[:2] = a
-print(b)
+print(i)
 
 
 

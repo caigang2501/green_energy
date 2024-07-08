@@ -26,7 +26,7 @@ def calcu_feature(individual:Individual):
         time = 6
         for le,lh,lc,ft in zip(season_load[0],season_load[1],season_load[2],feature_calcu[season]):
 
-            time = 1 if time>24 else time+1
+            time = 1 if time+1>24 else time+1
             run[3] = energy_rest.copy()
 
             # 5678: '地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机' 
@@ -41,18 +41,17 @@ def calcu_feature(individual:Individual):
                     break
                 else:
                     return False
-
+                
             # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
             while True:
                 run[1] = [ft[3]*up[3],ft[2]*up[2],ft[4]*up[4],ft[5]*(1-ft[-4])*up[5],ft[6]*(1-ft[-3])*up[6]]
                 run_out[1] = [ft[3]*up[3]*c[2],ft[2]*up[2]*c[0],ft[4]*up[4]*c[3],ft[5]*(1-ft[-4])*up[5]*c[4],ft[6]*(1-ft[-3])*up[6]*c[5]]
                 if sum(run_out[1])-run_out[2][3]+energy_rest[1]>lh:
-                    energy_rest[1] += sum(run_out[1])-run_out[2][3]-lh
-                    if sum(run_out[1])-lh>0:
-                        energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[2])-lc)*sd['heat'][0]
-                    else:
-                        energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[2])-lc)/sd['heat'][1]
-                    break
+                        if sum(run_out[1])-run[2][3]-lh>0:
+                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
+                        else:
+                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
+                        break
                 else:
                     return False                  
             
@@ -64,14 +63,14 @@ def calcu_feature(individual:Individual):
             if gas_chg>0:
                 run[4][0] = gas_chg/sd['gas'][0]+gas_cost # '买燃气'
             else:
-                run[4][0] = -gas_chg*sd['gas'][1]+gas_cost
+                run[4][0] = gas_chg*sd['gas'][1]+gas_cost
             energy_rest[3] = (energy_rest[3]+gas_chg)*(1-sd['gas'][2])
 
             # '风电','光伏','热电产电'
             elic_chg = ft[12]*energy_start[0]*3*0.8-(energy_rest[0]-energy_start[0]*3*0.2)
-            energy_rest[0] += (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
+            energy_rest[0] = (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
             elic_o = elic_chg/sd['elic'][0] if elic_chg>0 else elic_chg*sd['elic'][1]
-            elic_cost = sum(run_out[2][:3])+sum(run_out[1][2:])+le-run_out[1][1]+elic_o
+            elic_cost = sum(run[2][:3])+sum(run[1][2:])+le-run_out[1][1]+elic_o
             run[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
             run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[1]]
 
@@ -134,6 +133,14 @@ def feature2calcu(feature):
             index = i*13*24+13*j
             feature_calcu[season].append(feature[index:index+13])
     return feature_calcu
+
+def feature_hour(feature):
+    feature_cat = []
+    for i,season in enumerate(constent.SEASONS):
+        for j in range(24):
+            index = i*13*24+13*j
+            feature_cat.append(feature[index:index+13])
+    return feature_cat
 
 def sutable(individual:Individual):
     # TODO

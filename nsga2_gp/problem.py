@@ -18,7 +18,7 @@ class Problem:
     def generate_empty_individual(self):
             individual = Individual()
             individual.calcuted = False
-            individual.features = [round(random.random(),4) for _ in range(936)]
+            individual.features = [round(random.random(),2) for _ in range(936)]
             return individual
 
     def generate_individual(self):
@@ -37,8 +37,9 @@ class Problem:
             run_out = [[],[],[]] # 输出功率
             time = 6
             for le,lh,lc in zip(season_load[0],season_load[1],season_load[2]):
-                ft = [round(random.random(),4) for _ in range(13)]
-                time = 1 if time>24 else time+1
+                # ft:'风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','地源热泵制冷比例','空气源热泵制冷比例','充放然气','充放电'
+                ft = [round(random.random(),2) for _ in range(13)]
+                time = 1 if time+1>24 else time+1
                 run[3] = energy_rest.copy()
 
                 # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
@@ -47,6 +48,7 @@ class Problem:
                     run_out[1] = [ft[3]*up[3]*c[2],ft[2]*up[2]*c[0],ft[4]*up[4]*c[3],ft[5]*(1-ft[-4])*up[5]*c[4],ft[6]*(1-ft[-3])*up[6]*c[5]]
                     if sum(run_out[1])+energy_rest[1]>lh:
                         up[8] = min(up[8],sum(run_out[1])+energy_rest[1]-lh)
+                        # ft[8] *= min(up[8],sum(run_out[1])+energy_rest[1]-lh)/(up[8])
                         # 5678: '地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机' 
                         while True:
                             run[2] = [ft[5]*ft[9]*up[5],ft[6]*ft[10]*up[6],ft[7]*up[7],ft[8]*up[8]]
@@ -59,42 +61,42 @@ class Problem:
                                 break
                             else:
                                 for i in range(6):
-                                    ft[i+5] = round(random.random(),4)
+                                    ft[i+5] = round(random.random(),2)
 
-                        energy_rest[1] += sum(run_out[1])-run_out[2][3]-lh
-                        if sum(run_out[1])-lh>0:
-                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[2])-lc)*sd['heat'][0]
+                        if sum(run_out[1])-run[2][3]-lh>0:
+                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
                         else:
-                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[2])-lc)/sd['heat'][1]
+                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
                         break
                     else:
                         for i in range(3):
-                            ft[i+2] = round(random.random(),4) 
+                            ft[i+2] = round(random.random(),2) 
 
                 # CH4
                 gas_cost = run[1][0]+run[1][1]
                 gas_chg = ft[11]*energy_start[0]*3-energy_rest[3] if energy_rest[3]<gas_cost/sd['gas'][1] else ft[11]*(energy_start[3]*3-energy_rest[3]+gas_cost/sd['gas'][1])-gas_cost/sd['gas'][1]
                 
-                # +储 -放
+                # '买燃气'
                 if gas_chg>0:
-                    run[4][0] = gas_chg/sd['gas'][0]+gas_cost # '买燃气'
+                    run[4][0] = gas_chg/sd['gas'][0]+gas_cost 
                 else:
-                    run[4][0] = -gas_chg*sd['gas'][1]+gas_cost
+                    run[4][0] = gas_chg*sd['gas'][1]+gas_cost
+                    
+                # +储 -放
                 energy_rest[3] = (energy_rest[3]+gas_chg)*(1-sd['gas'][2])
 
                 # '风电','光伏','热电产电'
                 # elic_chg = ft[12]*energy_start[0]*3-energy_rest[0]
                 elic_chg = ft[12]*energy_start[0]*3*0.8-(energy_rest[0]-energy_start[0]*3*0.2)
-                energy_rest[0] += (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
+                energy_rest[0] = (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
                 elic_o = elic_chg/sd['elic'][0] if elic_chg>0 else elic_chg*sd['elic'][1]
-                elic_cost = sum(run_out[2][:3])+sum(run_out[1][2:])+le-run_out[1][1]+elic_o
+                elic_cost = sum(run[2][:3])+sum(run[1][2:])+le-run_out[1][1]+elic_o
                 run[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
                 run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[1]]
 
                 # rest_elic +卖 -买
                 run[4][1] = sum(run_out[0])-elic_cost # '买卖电'
 
-                # ft:'风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','地源热泵制冷比例','空气源热泵制冷比例','充放然气','充放电'
                 individual.features.extend(ft.copy())
 
                 # time,le,lh,lc,'风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电'
