@@ -10,11 +10,10 @@ from example.constent import STORAGE_DEVICE as sd
 from nsga2_gp.problem import Problem
 from nsga2_gp.evolution import Evolution
 from nsga2_gp.individual import Individual
-from nsga2_gp.utils import calcu_feature
+from nsga2_gp.utils import calcu_feature,feature_hour
 
 
 save_path = 'example/result/'
-
 
 def f1(individual:Individual):
     calcu_feature(individual)
@@ -24,12 +23,12 @@ def f1(individual:Individual):
     for cpc,con in zip(individual.feature_plan,constent.CONSTRA_COST):
         constract_cost += cpc*con
     
-    run_cost = individual.benefit['be']+individual.benefit['bg']-individual.benefit['se']
+    run_cost = individual.benefit['be']*0.5+individual.benefit['bg']/constent.CH4_POWER*constent.CH4_PRICE+individual.benefit['se']*0.3
 
     for row in individual.feature_run:
         buy,bs_elic = row[-2:]
         pass
-    return run_cost+constract_cost
+    return run_cost*500+constract_cost
 
 def f2(individual:Individual):
     return individual.dis_co2
@@ -39,7 +38,7 @@ def f(individual:Individual):
 
 def solve(hashrate):
     problem = Problem(objectives=[f])
-    evo = Evolution(problem,100,30)
+    evo = Evolution(problem,50,20)
     evol = evo.evolve()
     with pd.ExcelWriter(f'{save_path}ans.xlsx') as writer:
         for i,individual in enumerate(evol):
@@ -47,7 +46,20 @@ def solve(hashrate):
             # df_ansx.to_csv(f'{save_path}ans_{i}.csv',index=False)
             name = ' '.join([str(round(cost)) for cost in individual.objectives])
             df_ansx.to_excel(writer, sheet_name=name, index=False)
-    return evol[0].feature_run
+
+            df_ansx = pd.DataFrame(feature_hour(individual.features),columns=constent.FEATURE_COLUME)
+            df_ansx.to_excel(writer, sheet_name=f'feature{i}', index=False)
+        df_ansx = pd.DataFrame([individual.feature_plan],columns=constent.FEATURE_PLAN_COLUME)
+        df_ansx.to_excel(writer, sheet_name='规划', index=False)
+
+    spd_val,return_val = {},{'规划':individual.feature_plan}
+    for dvc in constent.FEATURE_RUN_COLUME[4:]:
+        spd_val[dvc] = constent.SUMMER_LOAD[0]
+    for sp_day in constent.SPECIAL_DAYS1:
+        return_val[sp_day] = spd_val
+
+    
+    return return_val
 
 if __name__=='__main__':
     solve()

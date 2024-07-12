@@ -32,10 +32,14 @@ def __get_beta():
         return (2 * u) ** (1 / (crossover_param + 1))
     return (2 * (1 - u)) ** (-1 / (crossover_param + 1))
 
+def test():
+    a = random.choices(list(range(100)),k=10)
+    a.sort()
+    return a[5]-a[4]
 
 if __name__=='__main__':
-    plot_distribution(__get_beta)
-
+    plot_distribution(random.normalvariate,0,0.05)
+    # print(test())
 
 
 

@@ -20,7 +20,7 @@ def calcu_feature(individual:Individual):
 
     for season in constent.SEASONS:
         season_load = constent.LOAD[season]
-        energy_rest = energy_start.copy() # TODO 添加平衡调整后删除
+        energy_rest = energy_start.copy() 
         run = [[],[],[],[],[0,0]] # 输入功率
         run_out = [[],[],[]]
         time = 6
@@ -28,32 +28,28 @@ def calcu_feature(individual:Individual):
 
             time = 1 if time+1>24 else time+1
             run[3] = energy_rest.copy()
-
+            
             # 5678: '地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机' 
-            while True:
-                run[2] = [ft[5]*ft[9]*up[5],ft[6]*ft[10]*up[6],ft[7]*up[7],ft[8]*up[8]]
-                run_out[2] = [ft[5]*ft[9]*up[5]*c[6],ft[6]*ft[10]*up[6]*c[7],ft[7]*up[7]*c[8],ft[8]*up[8]*c[9]]
-                if sum(run_out[2])+energy_rest[2]*sd['cold'][1]>lc:
-                    if sum(run_out[2])-lc>0:
-                        energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)*sd['cold'][0]
-                    else:
-                        energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)/sd['cold'][1]
-                    break
+            run[2] = [ft[5]*ft[9]*up[5],ft[6]*ft[10]*up[6],ft[7]*up[7],ft[8]*up[8]]
+            run_out[2] = [ft[5]*ft[9]*up[5]*c[5][1],ft[6]*ft[10]*up[6]*c[6][1],ft[7]*up[7]*c[7],ft[8]*up[8]*c[8]]
+            if sum(run_out[2])+energy_rest[2]*sd['cold'][1]>lc:
+                if sum(run_out[2])-lc>0:
+                    energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)*sd['cold'][0]
                 else:
-                    return False
+                    energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)/sd['cold'][1]
+            else:
+                return False
                 
             # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
-            while True:
-                run[1] = [ft[3]*up[3],ft[2]*up[2],ft[4]*up[4],ft[5]*(1-ft[-4])*up[5],ft[6]*(1-ft[-3])*up[6]]
-                run_out[1] = [ft[3]*up[3]*c[2],ft[2]*up[2]*c[0],ft[4]*up[4]*c[3],ft[5]*(1-ft[-4])*up[5]*c[4],ft[6]*(1-ft[-3])*up[6]*c[5]]
-                if sum(run_out[1])-run_out[2][3]+energy_rest[1]>lh:
-                        if sum(run_out[1])-run[2][3]-lh>0:
-                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
-                        else:
-                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
-                        break
-                else:
-                    return False                  
+            run[1] = [ft[3]*up[3],ft[2]*up[2],ft[4]*up[4],ft[5]*(1-ft[-4])*up[5],ft[6]*(1-ft[-3])*up[6]]
+            run_out[1] = [ft[3]*up[3]*c[3],ft[2]*up[2]*c[2][0],ft[4]*up[4]*c[4],ft[5]*(1-ft[-4])*up[5]*c[5][0],ft[6]*(1-ft[-3])*up[6]*c[6][0]]
+            if sum(run_out[1])-run_out[2][3]+energy_rest[1]*sd['heat'][1]>lh:
+                    if sum(run_out[1])-run[2][3]-lh>0:
+                        energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
+                    else:
+                        energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
+            else:
+                return False                  
             
             # CH4
             gas_cost = run[1][0]+run[1][1]
@@ -72,7 +68,7 @@ def calcu_feature(individual:Individual):
             elic_o = elic_chg/sd['elic'][0] if elic_chg>0 else elic_chg*sd['elic'][1]
             elic_cost = sum(run[2][:3])+sum(run[1][2:])+le-run_out[1][1]+elic_o
             run[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
-            run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[1]]
+            run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[2][1]]
 
             # rest_elic +卖 -买
             run[4][1] = sum(run_out[0])-elic_cost # '买卖电'
@@ -243,7 +239,7 @@ class NSGA2Utils:
         num_of_features = len(child1.features)
         genes_indexes = range(num_of_features)
         for i in genes_indexes:
-            beta = self.__get_beta() # nomal 期望：1.0 方差：0.07
+            beta = self.__get_beta() # nomal 期望：1.0 差：0.5
             x1 = (individual1.features[i] + individual2.features[i]) / 2
             x2 = abs((individual1.features[i] - individual2.features[i]) / 2)
             child1.features[i] = x1 + beta * x2
@@ -260,14 +256,15 @@ class NSGA2Utils:
     def __mutate(self, child):
         num_of_features = len(child.features)
         for gene in range(num_of_features):
-            u, delta = self.__get_delta() # delta 期望：0,标准差：0.2
+            u, delta = self.__get_delta() # delta 期望：0,差：0.2
             if u < 0.5:
                 child.features[gene] += delta * (child.features[gene] - self.problem.variables_range[0])
             else:
                 child.features[gene] += delta * (self.problem.variables_range[1] - child.features[gene])
+                
             if child.features[gene] < self.problem.variables_range[0]:
                 child.features[gene] = self.problem.variables_range[0]
-            elif child.features[gene] > self.problem.variables_range[1]:
+            if child.features[gene] > self.problem.variables_range[1]:
                 child.features[gene] = self.problem.variables_range[1]
 
     def __get_delta(self):

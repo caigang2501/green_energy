@@ -1,12 +1,11 @@
-from nsga2_gp.utils import NSGA2Utils
-from nsga2_gp.population import Population
-from example import constent
+from nsga2.utils import NSGA2Utils
+from nsga2.population import Population
 from tqdm import tqdm
 
 
 class Evolution:
 
-    def __init__(self, problem, num_of_generations=2000, num_of_individuals=50, num_of_tour_particips=2,
+    def __init__(self, problem, num_of_generations=1000, num_of_individuals=100, num_of_tour_particips=2,
                  tournament_prob=0.9, crossover_param=2, mutation_param=5):
         self.utils = NSGA2Utils(problem, num_of_individuals, num_of_tour_particips, tournament_prob, crossover_param,
                                 mutation_param)
@@ -23,8 +22,6 @@ class Evolution:
         children = self.utils.create_children(self.population)
         returned_population = None
         for i in tqdm(range(self.num_of_generations)):
-            if i==50:
-                pass
             self.population.extend(children)
             self.utils.fast_nondominated_sort(self.population)
             new_population = Population()
@@ -42,9 +39,4 @@ class Evolution:
             for front in self.population.fronts:
                 self.utils.calculate_crowding_distance(front)
             children = self.utils.create_children(self.population)
-
-            # constent.cat1.append(returned_population.fronts[0][0].benefit['bg'])
-            # constent.cat2.append(returned_population.fronts[0][0].benefit['be'])
-            # constent.cat3.append(returned_population.fronts[0][0].benefit['se'])
-            constent.objectives.append(returned_population.fronts[0][0].objectives[0]//10*5)
         return returned_population.fronts[0]
