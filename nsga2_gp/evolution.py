@@ -6,9 +6,9 @@ from tqdm import tqdm
 
 class Evolution:
 
-    def __init__(self, problem, num_of_generations=2000, num_of_individuals=50, num_of_tour_particips=2,
+    def __init__(self, problem,num_of_generations=2000, num_of_individuals=50, num_of_tour_particips=2,
                  tournament_prob=0.9, crossover_param=2, mutation_param=5):
-        self.utils = NSGA2Utils(problem, num_of_individuals, num_of_tour_particips, tournament_prob, crossover_param,
+        self.utils = NSGA2Utils(problem,num_of_individuals, num_of_tour_particips, tournament_prob, crossover_param,
                                 mutation_param)
         self.population = None
         self.num_of_generations = num_of_generations
@@ -22,6 +22,7 @@ class Evolution:
             self.utils.calculate_crowding_distance(front)
         children = self.utils.create_children(self.population)
         returned_population = None
+        print('creat',constent.st.value)
         for i in tqdm(range(self.num_of_generations)):
             if i==50:
                 pass
@@ -43,8 +44,6 @@ class Evolution:
                 self.utils.calculate_crowding_distance(front)
             children = self.utils.create_children(self.population)
 
-            # constent.cat1.append(returned_population.fronts[0][0].benefit['bg'])
-            # constent.cat2.append(returned_population.fronts[0][0].benefit['be'])
-            # constent.cat3.append(returned_population.fronts[0][0].benefit['se'])
             constent.objectives.append(returned_population.fronts[0][0].objectives[0]//10*5)
+            print('crossover',constent.st.value)
         return returned_population.fronts[0]

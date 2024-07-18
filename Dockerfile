@@ -1,4 +1,4 @@
-FROM gp_env
+FROM gp_env1
 
 WORKDIR /green_energy
 
@@ -20,6 +20,10 @@ CMD ["flask", "run", "--host=0.0.0.0"]
 # scp danger_env.tar root@10.83.40.175:caigang
 # docker load -i green_energy.tar
 # docker run -d -p 8088:5000 green_energy
+
+
+# unzip green_energy.zip -d /gcph/pythonData/
+# docker run -d -p 8088:5000 --network gp_network green_energy
 # docker run -it -p 5010:5000 green_energy bash
 
 # docker exec -it <e2545f0769ed> uname -m

@@ -1,6 +1,7 @@
-import random,math
+import random,math,requests
 
 from example import constent 
+import copy
 
 up = constent.DEVICE_LIMIT
 FEATURE_NAME = ('风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','买天然气','充放电')
@@ -18,6 +19,12 @@ def get_part(sc,k,change=True):
         part = [p/sc[idx]/pda for idx,p in enumerate(part)]
     part = [0 if p<0 else round(p,2) for p in part]
     return part
-a = [[1],2,3]
-b = [4,5,6]
-print([*a[0],*b[1:]])
+a = {1:[2]}
+b = copy.deepcopy(a)
+b[1][0] = 3
+
+
+by_result = requests.post('http://10.30.107.7:8089/json',json={"run":{}})
+a = by_result.json()
+print('by_result: ',by_result.status_code,a)
+print(len(a['workday']),len(a['weekend']),len(a['holiday']))

@@ -12,8 +12,12 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    if 'WINDOWS' in socket.gethostname():
-        create_app().run(debug=True)
-    else:
-        create_app().run()
+    # if 'WINDOWS' in socket.gethostname():
+    #     create_app().run(debug=True)
+    # else:
+    #     create_app().run()
+
+    create_app().run()
+
+
 

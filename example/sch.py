@@ -1,4 +1,4 @@
-import sys,os
+import sys,os,math,random
 sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from nsga2.problem import Problem
@@ -13,11 +13,12 @@ def f2(x):
     return (x - 2) ** 2
 
 def f3(features):
-    return sum(features)
+    # return sum([math.sin(6.28*x) for x in features])
+    return sum(features)%30
 
 def solve():
     problem = Problem(objectives=[f3], num_of_variables=1, variables_range=[(0,1)])
-    evo = Evolution(problem,50,20)
+    evo = Evolution(problem,50,30)
     # evo = Evolution(problem)
     evol = evo.evolve()
     print(evol[0].objectives)

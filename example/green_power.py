@@ -15,19 +15,17 @@ save_path = 'example/result/'
 
 
 def f1(individual:Individual):
-    calcu_feature(individual)
-    # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
-    
+
     constract_cost,run_cost = 0,0
     for cpc,con in zip(individual.feature_plan,constent.CONSTRA_COST):
         constract_cost += cpc*con
     
-    run_cost = individual.benefit['be']*0.5+individual.benefit['bg']/constent.CH4_POWER*constent.CH4_PRICE+individual.benefit['se']*0.3
+    run_cost = individual.benefit['be']+individual.benefit['bg']/constent.CH4_POWER*constent.CH4_PRICE+individual.benefit['se']
 
     for row in individual.feature_run:
         buy,bs_elic = row[-2:]
         pass
-    return run_cost*500+constract_cost
+    return run_cost*3+constract_cost
 
 def f2(individual:Individual):
     return individual.dis_co2
@@ -41,11 +39,11 @@ def test(individual:Individual):
 def f(individual:Individual):
     return f1(individual)+f2(individual)
 
-def solve(hashrate):
+def solve(load):
+    constent.LOAD = constent.reget_load(load)
     problem = Problem(objectives=[f])
-    evo = Evolution(problem,50,20)
+    evo = Evolution(problem,10,20)
     evol = evo.evolve()
-    func = [i.objectives for i in evol]
     with pd.ExcelWriter(f'{save_path}ans.xlsx') as writer:
         for i,individual in enumerate(evol):
             df_ansx = pd.DataFrame(individual.feature_run,columns=constent.FEATURE_RUN_COLUME)
@@ -57,16 +55,19 @@ def solve(hashrate):
             df_ansx.to_excel(writer, sheet_name=f'feature{i}', index=False)
         df_ansx = pd.DataFrame([individual.feature_plan],columns=constent.FEATURE_PLAN_COLUME)
         df_ansx.to_excel(writer, sheet_name='规划', index=False)
+
+    return evol
+
+def main(load):
+    evol = solve(load)
+    func = [i.objectives for i in evol]
     function1 = [i[0] for i in func]
     if len(func)==1:
         print(constent.objectives[0],constent.objectives[-1])
+        print(evol[0].dis_co2,evol[0].benefit)
         plt.figure()
-        plt.plot(constent.objectives, marker='o')
-        # plt.plot(constent.cat1, marker='o')
-        # plt.plot(constent.cat2, marker='o')
-        # plt.plot(constent.cat3, marker='o')
-        # plt.text(len(constent.cat1)-1, constent.cat1[-1], 'bg', ha='left')
-        # plt.text(len(constent.cat2)-1, constent.cat2[-1], 'be', ha='left')
+        plt.plot(constent.objectives, marker='o',label='A')
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         # plt.text(len(constent.cat3)-1, constent.cat3[-1], 'se', ha='left')
         plt.title('Iteration process')
         plt.xlabel('Iterations')
@@ -77,20 +78,17 @@ def solve(hashrate):
         plt.ylabel('DIS_CO2', fontsize=15)
         plt.scatter(function1, function2)
     
-    # individual = evol[0]
-    # constract_cost,run_cost = 0,0
-    # for cpc,con in zip(individual.feature_plan,constent.CONSTRA_COST):
-    #     constract_cost += cpc*con
-    
-    # run_cost = individual.benefit['be']+individual.benefit['bg']-individual.benefit['se']
-
-    # print(constract_cost,run_cost)
     plt.savefig(f'{save_path}ans.png')
-
-    print(individual.dis_co2,individual.benefit)
     plt.show()
     return evol[0].feature_run
 
 if __name__=='__main__':
-    hashrate = constent.SUMMER_LOAD
-    solve(hashrate)
+    # load = {"workday": [30710.359865684313, 32424.963504136176, 26343.31836691784, 23402.050858972714, 31466.139246456245, 29404.1820705795, 32072.02460211823, 32745.146735856084, 31052.116954890793, 29286.697766835285, 33463.946078774075, 29636.647781847056, 39758.90971421667, 40463.81936424404, 24116.691469570425, 35138.40331794309, 2135.296922648603, 5151.845589285519, 6404.293285631984, 6217.690324626677, 5703.2162531203785, 8958.08853133498, 6629.073407347482, 4996.452096458904],
+    #         "weekend": [30710.359865684313, 32424.963504136176, 26343.31836691784, 23402.050858972714, 31466.139246456245, 29404.1820705795, 32072.02460211823, 32745.146735856084, 31052.116954890793, 29286.697766835285, 33463.946078774075, 29636.647781847056, 39758.90971421667, 40463.81936424404, 24116.691469570425, 35138.40331794309, 2135.296922648603, 5151.845589285519, 6404.293285631984, 6217.690324626677, 5703.2162531203785, 8958.08853133498, 6629.073407347482, 4996.452096458904],
+    #         "holiday": [30710.359865684313, 32424.963504136176, 26343.31836691784, 23402.050858972714, 31466.139246456245, 29404.1820705795, 32072.02460211823, 32745.146735856084, 31052.116954890793, 29286.697766835285, 33463.946078774075, 29636.647781847056, 39758.90971421667, 40463.81936424404, 24116.691469570425, 35138.40331794309, 2135.296922648603, 5151.845589285519, 6404.293285631984, 6217.690324626677, 5703.2162531203785, 8958.08853133498, 6629.073407347482, 4996.452096458904]}
+    
+    load = {"workday": [0 for _ in range(24)],
+            "weekend": [0 for _ in range(24)],
+            "holiday": [0 for _ in range(24)]}
+    
+    main(load)

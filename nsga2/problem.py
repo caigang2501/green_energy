@@ -13,10 +13,7 @@ class Problem:
 
     def generate_individual(self):
         individual = Individual()
-        if round(random.random())<0:
-            individual.features = [0 for x in range(1000)]
-        else:
-            individual.features = [round(random.random(),2) for x in range(3000)]
+        individual.features = [round(random.random(),2) for x in range(1000)]
         return individual
 
     def calculate_objectives(self, individual):

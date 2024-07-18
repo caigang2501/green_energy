@@ -7,7 +7,6 @@ class Individual(object):
         self.dominated_solutions = None
         self.objectives = None
 
-        self.calcuted = True
         self.feature_plan = []
         self.feature_run = []
         self.features = []

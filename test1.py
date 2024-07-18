@@ -123,3 +123,5 @@ if not isinstance(individual,bool):
         df_ansx = pd.DataFrame([individual.feature_plan],columns=constent.FEATURE_PLAN_COLUME)
         df_ansx.to_excel(writer, sheet_name='规划', index=False)
         print('right')
+
+

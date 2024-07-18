@@ -1,4 +1,4 @@
-import random,math
+import random,math,copy
 import pandas as pd
 from nsga2_gp.individual import Individual
 from copy import deepcopy
@@ -18,8 +18,7 @@ class Problem:
 
     def generate_empty_individual(self):
             individual = Individual()
-            individual.calcuted = False
-            individual.features = [round(random.random(),2) for _ in range(936)]
+            individual.features = [round(random.random(),2) for _ in range(936*3)]
             return individual
     
 
@@ -36,22 +35,22 @@ class Problem:
                 return self.variables_range[1]*0.9+round(random.random()*0.1,5)
         
         def get_part(sc,k,change=False):
-            pda = 2 #总part比上总容量
+            pda = 1 #总part比上总容量
             choc = sorted(random.choices(list(range(100)),k=k))
             choc.insert(0,0),choc.append(100)
             part = [(choc[i+1]-choc[i])*0.01 for i in range(k+1)]
-            if len(part)==4:
-                power = [f*p for f,p in zip(part,up[5:9])]
-                print(sum(power))
+            # if len(part)==4:
+            #     power = [f*p for f,p in zip(part,up[5:9])]
+            #     print(sum(power))
             if change:
-                part = [(p+random.normalvariate(0,0.05))/pda for idx,p in enumerate(part)]
+                part = [(p+random.normalvariate(0,0.05))*pda for idx,p in enumerate(part)]
             else:
-                part = [p/pda for idx,p in enumerate(part)]
+                part = [p*pda for idx,p in enumerate(part)]
             part = [0 if p<0 else p for p in part]
-            if len(part)==4:
-                power = [f*p*c for f,p,c in zip(part,up[5:9],sc)]
-                print(part[0],up[5],sc[0])
-                print(sum(power))
+            # if len(part)==4:
+            #     power = [f*p*c for f,p,c in zip(part,up[5:9],sc)]
+            #     print(part[0],up[5],sc[0])
+            #     print(sum(power))
             return part
         
         def get_plan():
@@ -84,11 +83,11 @@ class Problem:
                                 else: # 热
                                     part = get_part([c[2][0],c[3],c[4],[5][0],c[6][0]],4,change=False)
                                     part = [p*ft[2][3] for p in part]
-                                    # ft[2][0],ft[2][1] = min(ft[2][0]+part[3],1),min(ft[2][0]+part[4],1)
+                                    ft[2][0],ft[2][1] = min(ft[2][0]+part[3],1),min(ft[2][0]+part[4],1)
                                     if ft[2][0]==0 or ft[2][1]==0:
                                         ft[2].extend([0,0])
                                     else:
-                                        ft[2].extend([(ft[2][0]-part[3])/ft[2][0],(ft[2][0]-part[4])/ft[2][1]])
+                                        ft[2].extend([(ft[2][0]-part[3])/ft[2][0],(ft[2][1]-part[4])/ft[2][1]])
                                     ft.append(part[:3])
                             else:
                                 ft.append(gr(1))
@@ -104,17 +103,18 @@ class Problem:
         energy_start = [lmt/3 for lmt in up[9:]] # 电 热 冷 气
         energy_rest = energy_start.copy()
         plan = []
-        plan_season = {'summer':[],'excessive':[],'winter':[]}
-        run_season = {'summer':[],'excessive':[],'winter':[]}
+        plan_season = copy.deepcopy(constent.empty_season)
+        run_season = copy.deepcopy(constent.empty_season)
 
 
         for season in constent.SEASONS:
+            ss,day = season.split('_')
             season_load = constent.LOAD[season]
             energy_rest = energy_start.copy() 
             run = [[],[],[],[],[0,0]] # 输入功率
             run_out = [[],[],[]] # 输出功率
             time = 6
-            for le,lh,lc in zip(season_load[0],season_load[1],season_load[2]):
+            for le,lh,lc,pw,pv in zip(season_load[0],season_load[1],season_load[2],constent.PW[ss],constent.PV[ss]):
                 # ft:'风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','地源热泵制冷比例','空气源热泵制冷比例','充放然气','充放电'           
                 time = 1 if time+1>24 else time+1
                 run[3] = energy_rest.copy()
@@ -147,6 +147,7 @@ class Problem:
                         break
                     else:
                         # print(season,time)
+                        constent.st.value += 1
                         stb_cold,stb_heat = False,False
 
                 # CH4
@@ -168,7 +169,8 @@ class Problem:
                 energy_rest[0] = (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
                 elic_o = elic_chg/sd['elic'][0] if elic_chg>0 else elic_chg*sd['elic'][1]
                 elic_cost = sum(run[2][:3])+sum(run[1][2:])+le-run_out[1][1]+elic_o
-                run[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
+                run[0] = [ft[0]*up[0]*pw,ft[1]*up[1]*pv,run[1][1]]
+                run_p = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
                 run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[2][1]]
 
                 # rest_elic +卖 -买
@@ -178,11 +180,12 @@ class Problem:
 
                 # time,le,lh,lc,'风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电'
                 individual.feature_run.append([time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
-                individual.feature_run[-1] = [round(p,1) for p in individual.feature_run[-1]]
-                run_season[season].append([time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
+                individual.feature_run[-1] = [round(p,3) for p in individual.feature_run[-1]]
+                individual.feature_run[-1].insert(0,season)
+                run_season[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
 
                 # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
-                plan.append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
+                plan.append([*run_p,ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
                 plan_season[season].append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
                 
                 # df_ansx = pd.DataFrame(individual.feature_run,columns=constent.FEATURE_RUN_COLUME)
@@ -190,9 +193,9 @@ class Problem:
         ch4_cost,elic_buy,elic_sell = 0,0,0
         for season in constent.SEASONS:    
             sum_plan = [sum(column) for column in zip(*plan_season[season])]  
-            ch4_cost += (sum_plan[2]+sum_plan[3])*constent.SPECIAL_DAYS[season]
-            elic_buy += sum([-row[-1] if row[-1]<0 else 0 for row in run_season[season]])*constent.SPECIAL_DAYS[season]
-            elic_sell += sum([-row[-1] if row[-1]>0 else 0 for row in run_season[season]])*constent.SPECIAL_DAYS[season]
+            ch4_cost += (sum_plan[2]+sum_plan[3])*constent.SPECIAL_9DAYS[season]
+            elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
+            elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
         
         individual.benefit['be'] = elic_buy
         individual.benefit['se'] = elic_sell

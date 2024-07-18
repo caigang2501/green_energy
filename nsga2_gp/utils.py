@@ -1,30 +1,36 @@
+import random,copy
+import requests
 from nsga2_gp.population import Population
 from nsga2_gp.individual import Individual
 from example import constent
 from example.constent import DEVICE_LIMIT as up
 from example.constent import CONV_RATE as c
 from example.constent import STORAGE_DEVICE as sd
-import random
+
+
+def download_by_requests(path,download_path):
+    result = requests.get(path)
+    with open(download_path, 'wb') as f:
+        f.write(result.content)
 
 def calcu_feature(individual:Individual):
-    if individual.calcuted:
-        return True
     energy_start = [lmt/3 for lmt in up[9:]] # 电 热 冷 气
     plan = []
     feature_calcu = feature2calcu(individual.features)
 
     individual.feature_run = []
     individual.feature_plan = []
-    plan_season = {'summer':[],'excessive':[],'winter':[]}
-    run_season = {'summer':[],'excessive':[],'winter':[]}
+    plan_season = copy.deepcopy(constent.empty_season)
+    run_season = copy.deepcopy(constent.empty_season)
 
     for season in constent.SEASONS:
+        ss,day = season.split('_')
         season_load = constent.LOAD[season]
         energy_rest = energy_start.copy() 
         run = [[],[],[],[],[0,0]] # 输入功率
         run_out = [[],[],[]]
         time = 6
-        for le,lh,lc,ft in zip(season_load[0],season_load[1],season_load[2],feature_calcu[season]):
+        for le,lh,lc,ft,pw,pv in zip(season_load[0],season_load[1],season_load[2],feature_calcu[season],constent.PW[ss],constent.PV[ss]):
 
             time = 1 if time+1>24 else time+1
             run[3] = energy_rest.copy()
@@ -67,27 +73,27 @@ def calcu_feature(individual:Individual):
             energy_rest[0] = (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
             elic_o = elic_chg/sd['elic'][0] if elic_chg>0 else elic_chg*sd['elic'][1]
             elic_cost = sum(run[2][:3])+sum(run[1][2:])+le-run_out[1][1]+elic_o
-            run[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
+            run[0] = [ft[0]*up[0]*pw,ft[1]*up[1]*pv,run[1][1]]
+            run_p = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
             run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[2][1]]
 
             # rest_elic +卖 -买
             run[4][1] = sum(run_out[0])-elic_cost # '买卖电'
 
             # time,le,lh,lc,'风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电'
-            individual.feature_run.append([time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
-            run_season[season].append([time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
-
+            individual.feature_run.append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
+            run_season[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
             # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
-            plan.append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
+            plan.append([*run_p,ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
             plan_season[season].append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
         
     ch4_cost,elic_buy,elic_sell = 0,0,0
     for season in constent.SEASONS:    
         sum_plan = [sum(column) for column in zip(*plan_season[season])]  
-        ch4_cost += (sum_plan[2]+sum_plan[3])*constent.SPECIAL_DAYS[season]
-        elic_buy += sum([-row[-1] if row[-1]<0 else 0 for row in run_season[season]])*constent.SPECIAL_DAYS[season]
-        elic_sell += sum([-row[-1] if row[-1]>0 else 0 for row in run_season[season]])*constent.SPECIAL_DAYS[season]
-    
+        ch4_cost += (sum_plan[2]+sum_plan[3])*constent.SPECIAL_9DAYS[season]
+        elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
+        elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
+         
     individual.benefit['be'] = elic_buy
     individual.benefit['se'] = elic_sell
     individual.benefit['bg'] = ch4_cost
@@ -95,7 +101,6 @@ def calcu_feature(individual:Individual):
     individual.feature_plan = [max(column) for column in zip(*plan)]
     # adjust(individual)
 
-    individual.calcuted = True
     return True
 
 def adjust(individual:Individual):
@@ -123,7 +128,7 @@ def adjust(individual:Individual):
     return individual
 
 def feature2calcu(feature):
-    feature_calcu = {'summer':[],'excessive':[],'winter':[]}
+    feature_calcu = copy.deepcopy(constent.empty_season)
     for i,season in enumerate(constent.SEASONS):
         for j in range(24):
             index = i*13*24+13*j
@@ -145,7 +150,7 @@ def sutable(individual:Individual):
 class NSGA2Utils:
 
     # num_of_tour_particips： 用于选取父类的子集个数
-    def __init__(self, problem, num_of_individuals=50,
+    def __init__(self, problem,num_of_individuals=50,
                  num_of_tour_particips=2, tournament_prob=0.9, crossover_param=2, mutation_param=5):
 
         self.problem = problem
@@ -215,7 +220,10 @@ class NSGA2Utils:
     def create_children(self, population):
         children = []
         while len(children) < len(population):
+            i = 0
             while True:
+                constent.st.value += i
+                i = 1
                 parent1 = self.__tournament(population) # 选择更小更孤立的个体
                 parent2 = parent1
                 while parent1 == parent2:

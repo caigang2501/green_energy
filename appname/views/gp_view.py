@@ -8,19 +8,19 @@ import logging
 bp = Blueprint("main", __name__)
 
 @bp.route("/json", methods=['POST'])
-def mid_long_year():
-    hashrate = request.get_json()['hashrate']
-    result = main.solve(hashrate)
+def json():
+    load = request.get_json()['load']
+    result = main.solve(load)
     return jsonify(result)
 
 @bp.route("/excel", methods=['POST'])
-def mid_lon():
-    hashrate = request.get_json()['hashrate']
-    main.solve(hashrate)
+def excel():
+    load = request.get_json()['load']
+    main.solve(load)
     file_path = os.getcwd()+'/example/result/ans.xlsx'
     return send_file(file_path, as_attachment=True)
 
 @bp.route("/get_excel", methods=['GET'])
-def mid_get():
+def get_excel():
     file_path = os.getcwd()+'/example/result/ans.xlsx' 
     return send_file(file_path, as_attachment=True)
