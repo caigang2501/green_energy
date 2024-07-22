@@ -24,7 +24,7 @@ b = copy.deepcopy(a)
 b[1][0] = 3
 
 
-by_result = requests.post('http://10.30.107.7:8089/json',json={"run":{}})
-a = by_result.json()
-print('by_result: ',by_result.status_code,a)
-print(len(a['workday']),len(a['weekend']),len(a['holiday']))
+# by_result = requests.post('http://10.30.107.7:8089/json',json={"run":{}})
+# a = by_result.json()
+# print('by_result: ',by_result.status_code,a)
+# print(len(a['workday']),len(a['weekend']),len(a['holiday']))

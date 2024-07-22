@@ -17,13 +17,11 @@ def calcu_feature(individual:Individual):
     energy_start = [lmt/3 for lmt in up[9:]] # 电 热 冷 气
     plan = []
     feature_calcu = feature2calcu(individual.features)
-
-    individual.feature_run = []
+    
     individual.feature_plan = []
-    plan_season = copy.deepcopy(constent.empty_season)
-    run_season = copy.deepcopy(constent.empty_season)
+    plan_season = copy.deepcopy(constent.EMPTY_SEASON)
 
-    for season in constent.SEASONS:
+    for season in constent.SPECIAL_9DAYS.keys():
         ss,day = season.split('_')
         season_load = constent.LOAD[season]
         energy_rest = energy_start.copy() 
@@ -81,24 +79,28 @@ def calcu_feature(individual:Individual):
             run[4][1] = sum(run_out[0])-elic_cost # '买卖电'
 
             # time,le,lh,lc,'风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电'
-            individual.feature_run.append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
-            run_season[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
+            individual.feature_run[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
             # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
             plan.append([*run_p,ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
             plan_season[season].append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
         
     ch4_cost,elic_buy,elic_sell = 0,0,0
-    for season in constent.SEASONS:    
+    for season in constent.SPECIAL_9DAYS.keys():    
         sum_plan = [sum(column) for column in zip(*plan_season[season])]  
         ch4_cost += (sum_plan[2]+sum_plan[3])*constent.SPECIAL_9DAYS[season]
-        elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
-        elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
+        elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
+        elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
          
     individual.benefit['be'] = elic_buy
     individual.benefit['se'] = elic_sell
     individual.benefit['bg'] = ch4_cost
     individual.dis_co2 = constent.CH4_CO2*ch4_cost + constent.ELIC_CO2*elic_buy
     individual.feature_plan = [max(column) for column in zip(*plan)]
+
+    stg = list(zip(*plan))[-4:]
+    chg = [max([s[i+1]-s[i] for i in range(23)]) for s in stg]
+    dis_chg = [max([s[i]-s[i+1] for i in range(23)]) for s in stg]
+    individual.feature_plan.extend(chg+dis_chg)
     # adjust(individual)
 
     return True
@@ -128,8 +130,8 @@ def adjust(individual:Individual):
     return individual
 
 def feature2calcu(feature):
-    feature_calcu = copy.deepcopy(constent.empty_season)
-    for i,season in enumerate(constent.SEASONS):
+    feature_calcu = copy.deepcopy(constent.EMPTY_SEASON)
+    for i,season in enumerate(constent.SPECIAL_9DAYS.keys()):
         for j in range(24):
             index = i*13*24+13*j
             feature_calcu[season].append(feature[index:index+13])
@@ -137,7 +139,7 @@ def feature2calcu(feature):
 
 def feature_hour(feature):
     feature_cat = []
-    for i,season in enumerate(constent.SEASONS):
+    for i,season in enumerate(constent.SPECIAL_9DAYS.keys()):
         for j in range(24):
             index = i*13*24+13*j
             feature_cat.append(feature[index:index+13])
@@ -224,7 +226,7 @@ class NSGA2Utils:
             while True:
                 constent.st.value += i
                 i = 1
-                parent1 = self.__tournament(population) # 选择更小更孤立的个体
+                parent1 = self.__tournament(population) # 1: rank 2: if equal -> crowd
                 parent2 = parent1
                 while parent1 == parent2:
                     parent2 = self.__tournament(population)
@@ -282,6 +284,7 @@ class NSGA2Utils:
         return u, 1 - (2 * (1 - u)) ** (1 / (self.mutation_param + 1))
 
     def __tournament(self, population):
+        # self.num_of_tour_particips = 2
         participants = random.sample(population.population, self.num_of_tour_particips)
         best = None
         for participant in participants:

@@ -22,7 +22,7 @@ CMD ["flask", "run", "--host=0.0.0.0"]
 # docker run -d -p 8088:5000 green_energy
 
 
-# unzip green_energy.zip -d /gcph/pythonData/
+# unzip /tmp/green_energy.zip -d /gcph/pythonData/
 # docker run -d -p 8088:5000 --network gp_network green_energy
 # docker run -it -p 5010:5000 green_energy bash
 

@@ -15,7 +15,7 @@ result = result[6:]+result[:6]
 result = ','.join(result)
 print(result)
 
-
+YEARS = 5
 SP_INDIVIDUAL = 1
 # 排放系数
 ELIC_CO2 = 88.43
@@ -32,18 +32,17 @@ SPECIAL_9DAYS = {'summer_workday':63,'summer_workend':25,'summer_holiday':4,
                 'excessive_workday':64,'excessive_workend':25,'excessive_holiday':4,
                 'winter_workday':123,'winter_workend':51,'winter_holiday':6}
 
-empty_season = {'summer_workday':[],'summer_workend':[],'summer_holiday':[],
+EMPTY_SEASON = {'summer_workday':[],'summer_workend':[],'summer_holiday':[],
         'excessive_workday':[],'excessive_workend':[],'excessive_holiday':[],
         'winter_workday':[],'winter_workend':[],'winter_holiday':[]}
 
-FEATURE_RUN_COLUME = ('典型日种类','time','电负荷','热负荷','冷负荷','风力','光伏','热电联产','燃气锅炉','电锅炉','地制热','空气产热','地制冷','空气制冷','电制冷机','吸收制冷','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电')
-FEATURE_COLUME = ('风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','地源热泵制冷比例','空气源热泵制冷比例','充放然气','充放电')
-FEATURE_PLAN_COLUME = ('风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气热泵','电制冷机','吸收制冷','储电设备','储热设备','储冷设备','储气设备')
+FEATURE_RUN_COLUME = ('典型日种类','时间','电负荷','热负荷','冷负荷','风力','光伏','热电联产','燃气锅炉','电锅炉','地制热','空气制热','地制冷','空气制冷','电制冷机','吸收制冷','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电')
+FEATURE_COLUME = ('风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气热泵','电制冷机','吸收式制冷机','地源热泵制冷比例','空气源热泵制冷比例','充放然气','充放电')
+FEATURE_PLAN_COLUME = ('风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气热泵','电制冷机','吸收制冷','储电设备','储热设备','储冷设备','储气设备','吸收制冷','最大充电','最大充热','最大充冷','最大充气','最大放电','最大放热','最大放冷','最大放气')
+ENGLISH_DICT = {'风力':'windPower','光伏':'photovoltaic','热电联产':'coGenerationSystems','燃气锅炉':'gasBoiler','电锅炉':'electricBoiler','地源热泵':'groundSourceHeatPump','空气热泵':'airSourceHeatPump','电制冷机':'electricRefrigerationMachine','吸收制冷':'absorptionRefrigerationMachine','储电设备':'electricityStorageEquipment','储热设备':'thermalStorageEquipment','储冷设备':'coldStorageEquipment','储气设备':'airReservoir',
+                '典型日种类':'specialDay','时间':'time','电负荷':'elicLoad','热负荷':'heatLoad','冷负荷':'coldLoad','地制热':'groundSourceHeatPump_heat','地制冷':'groundSourceHeatPump_cold','空气制热':'airSourceHeatPump_heat','空气制冷':'airSourceHeatPump_cold','买燃气':'buyGas','买卖电':'buySellElic'}
 
 
-SEASONS = ('summer_workday','summer_workend','summer_holiday',
-            'excessive_workday','excessive_workend','excessive_holiday',
-            'winter_workday','winter_workend','winter_holiday')
 # 电价 time: 7->24->6
 ELEC_BUY_PRICE = (0.379028,0.685068,0.685068,0.685068,0.685068,0.685068,0.685068,0.685068,0.685068,0.991108,0.991108,0.991108,0.991108,1.139756,1.139756,0.685068,0.685068,0.379028,0.379028,0.379028,0.379028,0.379028,0.379028,0.379028)
 # ELEC_BUY_PRICE = [0 for i in range(24)]
@@ -59,6 +58,7 @@ CONSTRA_COST = (6.00,4.00,7.00,0.75,1.20,3.00,5.00,0.97,1.20,2.00,0.80,0.09,0.06
 
 STORAGE_DEVICE = {'elic':(0.95,0.95,0.04),'heat':(0.87,0.87,0.06),'cold':(0.88,0.88,0.01),'gas':(0.95,0.95,0.01)}
 
+# 没有使用
 DEVICE_INFO = {'ge':((2000,1,0,0),(460)),
                   'g2he':((10000,0.45,0.38)),
                   '2hc':((1500,5,4.4),(3000,1.8,2)),
@@ -67,9 +67,7 @@ DEVICE_INFO = {'ge':((2000,1,0,0),(460)),
                   'e2c':((1500,4)),
                   'h2c':((6000,1)),
                   'se':(0.95,0.95,0.04),'sh':(0.87,0.87,0.06),'sc':(0.88,0.88,0.01),'sg':(0.95,0.95,0.01)}
-DEVICE_INFO = [[2000 ,460  ,10000,1500 ,3000 ,6000 ,6000 ,1500 ,6000 ,10000,10000,10000,10000],
- [1    ,1    ,0.38 ,],
- []]
+
 
 
 # 税率
@@ -98,7 +96,7 @@ WINTER_LOAD = [[347.69,363.49,410.91,463.59,495.20,495.20,495.20,505.73,511.00,5
                [3494.28,3421.09,3101.30,3045.76,3001.29,2923.62,2857.08,2856.66,2845.20,2833.75,2855.30,2865.84,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00],
                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
 
-def reget_load(load):
+def get_load(load):
     load_9 = {'summer_workday':[[m+n for m,n in zip(SUMMER_LOAD[0],load['workday'])],SUMMER_LOAD[1],SUMMER_LOAD[2]],
             'summer_workend':[[m+n  for m,n in zip(SUMMER_LOAD[0],load['weekend'])],SUMMER_LOAD[1],SUMMER_LOAD[2]],
             'summer_holiday':[[m+n  for m,n in zip(SUMMER_LOAD[0],load['holiday'])],SUMMER_LOAD[1],SUMMER_LOAD[2]],

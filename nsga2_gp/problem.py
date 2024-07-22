@@ -1,7 +1,5 @@
 import random,math,copy
-import pandas as pd
 from nsga2_gp.individual import Individual
-from copy import deepcopy
 from example import constent 
 from example.constent import DEVICE_LIMIT as up
 from example.constent import CONV_RATE as c
@@ -15,6 +13,7 @@ class Problem:
         self.num_of_objectives = len(objectives)
         self.objectives = objectives
         self.variables_range = (0,1)
+        self.sp_individual = constent.SP_INDIVIDUAL
 
     def generate_empty_individual(self):
             individual = Individual()
@@ -54,8 +53,7 @@ class Problem:
             return part
         
         def get_plan():
-            # if sp<0.1:
-            if constent.SP_INDIVIDUAL>0:
+            if self.sp_individual>0:
                 
                 ft = []
                 spp = random.choice([1])
@@ -103,11 +101,9 @@ class Problem:
         energy_start = [lmt/3 for lmt in up[9:]] # 电 热 冷 气
         energy_rest = energy_start.copy()
         plan = []
-        plan_season = copy.deepcopy(constent.empty_season)
-        run_season = copy.deepcopy(constent.empty_season)
+        plan_season = copy.deepcopy(constent.EMPTY_SEASON)
 
-
-        for season in constent.SEASONS:
+        for season in constent.SPECIAL_9DAYS.keys():
             ss,day = season.split('_')
             season_load = constent.LOAD[season]
             energy_rest = energy_start.copy() 
@@ -179,10 +175,7 @@ class Problem:
                 individual.features.extend(ft.copy())
 
                 # time,le,lh,lc,'风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电'
-                individual.feature_run.append([time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
-                individual.feature_run[-1] = [round(p,3) for p in individual.feature_run[-1]]
-                individual.feature_run[-1].insert(0,season)
-                run_season[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
+                individual.feature_run[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
 
                 # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
                 plan.append([*run_p,ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
@@ -191,11 +184,11 @@ class Problem:
                 # df_ansx = pd.DataFrame(individual.feature_run,columns=constent.FEATURE_RUN_COLUME)
                 # df_ansx.to_csv('test.csv')
         ch4_cost,elic_buy,elic_sell = 0,0,0
-        for season in constent.SEASONS:    
+        for season in constent.SPECIAL_9DAYS.keys():    
             sum_plan = [sum(column) for column in zip(*plan_season[season])]  
             ch4_cost += (sum_plan[2]+sum_plan[3])*constent.SPECIAL_9DAYS[season]
-            elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
-            elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(run_season[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
+            elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
+            elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
         
         individual.benefit['be'] = elic_buy
         individual.benefit['se'] = elic_sell
@@ -203,9 +196,15 @@ class Problem:
         
         individual.dis_co2 = constent.CH4_CO2*ch4_cost + constent.ELIC_CO2*elic_buy
         individual.feature_plan = [max(column) for column in zip(*plan)]
+
+        stg = list(zip(*plan))[-4:]
+        chg = [max([s[i+1]-s[i] for i in range(23)]) for s in stg]
+        dis_chg = [max([s[i]-s[i+1] for i in range(23)]) for s in stg]
+        individual.feature_plan.extend(chg+dis_chg)
+
         # adjust(individual)
 
-        constent.SP_INDIVIDUAL -= 1
+        self.sp_individual -= 1
         return individual
 
     def calculate_objectives(self, individual):

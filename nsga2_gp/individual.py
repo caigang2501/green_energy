@@ -1,3 +1,6 @@
+import copy
+from example.constent import EMPTY_SEASON
+
 class Individual(object):
 
     def __init__(self):
@@ -8,10 +11,11 @@ class Individual(object):
         self.objectives = None
 
         self.feature_plan = []
-        self.feature_run = []
+        self.feature_run = copy.deepcopy(EMPTY_SEASON)
         self.features = []
         self.dis_co2 = 0
         self.benefit = {'be':0,'se':0,'bg':0}
+        self.economic = 0
 
     def __eq__(self, other):
         if isinstance(self, other.__class__):

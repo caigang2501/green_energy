@@ -10,13 +10,13 @@ bp = Blueprint("main", __name__)
 @bp.route("/json", methods=['POST'])
 def json():
     load = request.get_json()['load']
-    result = main.solve(load)
+    result = main.main(load)
     return jsonify(result)
 
 @bp.route("/excel", methods=['POST'])
 def excel():
     load = request.get_json()['load']
-    main.solve(load)
+    main.main(load)
     file_path = os.getcwd()+'/example/result/ans.xlsx'
     return send_file(file_path, as_attachment=True)
 
