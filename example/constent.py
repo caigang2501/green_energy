@@ -24,6 +24,7 @@ CH4_CO2 = 221
 # CH4_PRICE = {0:2.5,300:3,600:3.75}
 CH4_PRICE = 3.2     # 天然气价格
 CH4_POWER = 9.88    # 热值 (kw/m**3)
+RATED_CAPACITY = 3000
 
 
 
@@ -38,9 +39,9 @@ EMPTY_SEASON = {'summer_workday':[],'summer_workend':[],'summer_holiday':[],
 
 FEATURE_RUN_COLUME = ('典型日种类','时间','电负荷','热负荷','冷负荷','风力','光伏','热电联产','燃气锅炉','电锅炉','地制热','空气制热','地制冷','空气制冷','电制冷机','吸收制冷','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电')
 FEATURE_COLUME = ('风电','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气热泵','电制冷机','吸收式制冷机','地源热泵制冷比例','空气源热泵制冷比例','充放然气','充放电')
-FEATURE_PLAN_COLUME = ('风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气热泵','电制冷机','吸收制冷','储电设备','储热设备','储冷设备','储气设备','吸收制冷','最大充电','最大充热','最大充冷','最大充气','最大放电','最大放热','最大放冷','最大放气')
+FEATURE_PLAN_COLUME = ('风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气热泵','电制冷机','吸收制冷','储电设备','储热设备','储冷设备','储气设备','最大充电','最大充热','最大充冷','最大充气','最大放电','最大放热','最大放冷','最大放气')
 ENGLISH_DICT = {'风力':'windPower','光伏':'photovoltaic','热电联产':'coGenerationSystems','燃气锅炉':'gasBoiler','电锅炉':'electricBoiler','地源热泵':'groundSourceHeatPump','空气热泵':'airSourceHeatPump','电制冷机':'electricRefrigerationMachine','吸收制冷':'absorptionRefrigerationMachine','储电设备':'electricityStorageEquipment','储热设备':'thermalStorageEquipment','储冷设备':'coldStorageEquipment','储气设备':'airReservoir',
-                '典型日种类':'specialDay','时间':'time','电负荷':'elicLoad','热负荷':'heatLoad','冷负荷':'coldLoad','地制热':'groundSourceHeatPump_heat','地制冷':'groundSourceHeatPump_cold','空气制热':'airSourceHeatPump_heat','空气制冷':'airSourceHeatPump_cold','买燃气':'buyGas','买卖电':'buySellElic'}
+                '典型日种类':'specialDay','时间':'time','电负荷':'elicLoad','热负荷':'heatLoad','冷负荷':'coldLoad','地制热':'groundSourceHeatPump_heat','地制冷':'groundSourceHeatPump_cold','空气制热':'airSourceHeatPump_heat','空气制冷':'airSourceHeatPump_cold','买燃气':'buyGas','买卖电':'buySellElic','最大充电':'maxChargeElic','最大充热':'maxChargeHeat','最大充冷':'maxChargeCold','最大充气':'maxChargeGas','最大放电':'maxDishargeElic','最大放热':'maxDishargeHeat','最大放冷':'maxDishargeCold','最大放气':'maxDishargeGas'}
 
 
 # 电价 time: 7->24->6

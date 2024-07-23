@@ -40,7 +40,7 @@ def solve(load):
 
     constent.LOAD = constent.get_load(load)
     problem = Problem(objectives=[f])
-    evo = Evolution(problem,4,20)
+    evo = Evolution(problem,3,20)
     evol = evo.evolve()
     with pd.ExcelWriter(f'{save_path}ans.xlsx') as writer:
         for i,individual in enumerate(evol):

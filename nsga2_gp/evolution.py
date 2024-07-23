@@ -1,4 +1,4 @@
-from nsga2_gp.utils import NSGA2Utils
+from nsga2_gp.utils import NSGA2Utils,my_excel
 from nsga2_gp.population import Population
 from example import constent
 from tqdm import tqdm
@@ -23,9 +23,10 @@ class Evolution:
         children = self.utils.create_children(self.population)
         returned_population = None
         print('creat',constent.st.value)
+        # for i in range(10):
+        #     my_excel(self.population.fronts[i],f'creat{i}')
         for i in tqdm(range(self.num_of_generations)):
-            if i==50:
-                pass
+
             self.population.extend(children)
             self.utils.fast_nondominated_sort(self.population)
             new_population = Population()
@@ -46,4 +47,5 @@ class Evolution:
 
             constent.objectives.append(returned_population.fronts[0][0].objectives[0]//10*5)
             print('crossover',constent.st.value)
+        
         return returned_population.fronts[0]

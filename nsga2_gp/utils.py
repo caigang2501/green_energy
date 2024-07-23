@@ -1,5 +1,6 @@
 import random,copy
 import requests
+import pandas as pd
 from nsga2_gp.population import Population
 from nsga2_gp.individual import Individual
 from example import constent
@@ -7,6 +8,20 @@ from example.constent import DEVICE_LIMIT as up
 from example.constent import CONV_RATE as c
 from example.constent import STORAGE_DEVICE as sd
 
+
+def my_excel(evol,name):
+    with pd.ExcelWriter(f'example/result/{name}.xlsx') as writer:
+        for i,individual in enumerate(evol):
+            feature_run = [run for sp_day in constent.SPECIAL_9DAYS.keys() for run in individual.feature_run[sp_day]]
+            df_ansx = pd.DataFrame(feature_run,columns=constent.FEATURE_RUN_COLUME)
+            # df_ansx.to_csv(f'{save_path}ans_{i}.csv',index=False)
+            name = ' '.join([str(round(cost)) for cost in individual.objectives])
+            df_ansx.to_excel(writer, sheet_name=name, index=False)
+
+            df_ansx = pd.DataFrame(feature_hour(individual.features),columns=constent.FEATURE_COLUME)
+            df_ansx.to_excel(writer, sheet_name=f'feature{i}', index=False)
+        df_ansx = pd.DataFrame([individual.feature_plan],columns=constent.FEATURE_PLAN_COLUME)
+        df_ansx.to_excel(writer, sheet_name='规划', index=False)
 
 def download_by_requests(path,download_path):
     result = requests.get(path)
@@ -20,6 +35,8 @@ def calcu_feature(individual:Individual):
     
     individual.feature_plan = []
     plan_season = copy.deepcopy(constent.EMPTY_SEASON)
+    rc = constent.RATED_CAPACITY
+    
 
     for season in constent.SPECIAL_9DAYS.keys():
         ss,day = season.split('_')
@@ -34,25 +51,27 @@ def calcu_feature(individual:Individual):
             run[3] = energy_rest.copy()
             
             # 5678: '地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机' 
-            run[2] = [ft[5]*ft[9]*up[5],ft[6]*ft[10]*up[6],ft[7]*up[7],ft[8]*up[8]]
-            run_out[2] = [ft[5]*ft[9]*up[5]*c[5][1],ft[6]*ft[10]*up[6]*c[6][1],ft[7]*up[7]*c[7],ft[8]*up[8]*c[8]]
+            run[2] = [ft[5]*ft[9]*rc/c[5][1],ft[6]*ft[10]*rc/c[6][1],ft[7]*rc/c[7],ft[8]*rc/c[8]]
+            run_out[2] = [ft[5]*ft[9]*rc,ft[6]*ft[10]*rc,ft[7]*rc,ft[8]*rc]
             if sum(run_out[2])+energy_rest[2]*sd['cold'][1]>lc:
                 if sum(run_out[2])-lc>0:
                     energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)*sd['cold'][0]
                 else:
                     energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)/sd['cold'][1]
             else:
+                # print('cold',sum(run_out[2])-lc)
                 return False
                 
             # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
-            run[1] = [ft[3]*up[3],ft[2]*up[2],ft[4]*up[4],ft[5]*(1-ft[-4])*up[5],ft[6]*(1-ft[-3])*up[6]]
-            run_out[1] = [ft[3]*up[3]*c[3],ft[2]*up[2]*c[2][0],ft[4]*up[4]*c[4],ft[5]*(1-ft[-4])*up[5]*c[5][0],ft[6]*(1-ft[-3])*up[6]*c[6][0]]
+            run[1] = [ft[3]*rc/c[3],ft[2]*rc/c[2][0],ft[4]*rc/c[4],ft[5]*(1-ft[-4])*rc/c[5][0],ft[6]*(1-ft[-3])*rc/c[6][0]]
+            run_out[1] = [ft[3]*rc,ft[2]*rc,ft[4]*rc,ft[5]*(1-ft[-4])*rc,ft[6]*(1-ft[-3])*rc]
             if sum(run_out[1])-run_out[2][3]+energy_rest[1]*sd['heat'][1]>lh:
                     if sum(run_out[1])-run[2][3]-lh>0:
                         energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
                     else:
                         energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
             else:
+                # print('heat',sum(run_out[1])-run[2][3]-lh)
                 return False                  
             
             # CH4
@@ -81,8 +100,8 @@ def calcu_feature(individual:Individual):
             # time,le,lh,lc,'风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电'
             individual.feature_run[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
             # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
-            plan.append([*run_p,ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
-            plan_season[season].append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
+            plan.append([*run_p,run[1][0],run[1][2],run[1][3]+run[2][0],run[1][4]+run[2][1],run[2][2],run[2][3],*run[3]])
+            plan_season[season].append([*run[0],*run_p,run[1][0],run[1][2],run[1][3]+run[2][0],run[1][4]+run[2][1],run[2][2],run[2][3],*run[3]])
         
     ch4_cost,elic_buy,elic_sell = 0,0,0
     for season in constent.SPECIAL_9DAYS.keys():    
@@ -235,7 +254,8 @@ class NSGA2Utils:
                 self.__mutate(child2)
                 if calcu_feature(child1) and calcu_feature(child2):
                     break
-
+                # if not calcu_feature(parent1) or not calcu_feature(parent2):
+                #     print('wrong father') # 打开会有bug
             self.problem.calculate_objectives(child1)
             self.problem.calculate_objectives(child2)
             children.append(child1)
@@ -265,17 +285,19 @@ class NSGA2Utils:
 
     def __mutate(self, child):
         num_of_features = len(child.features)
+
         for gene in range(num_of_features):
-            u, delta = self.__get_delta() # delta 期望：0,差：0.2
-            if u < 0.5:
-                child.features[gene] += delta * (child.features[gene] - self.problem.variables_range[0])
-            else:
-                child.features[gene] += delta * (self.problem.variables_range[1] - child.features[gene])
-                
-            if child.features[gene] < self.problem.variables_range[0]:
-                child.features[gene] = self.problem.variables_range[0]
-            if child.features[gene] > self.problem.variables_range[1]:
-                child.features[gene] = self.problem.variables_range[1]
+            if child.features[gene]!=0:       # ==0 则不变异
+                u, delta = self.__get_delta() # delta 期望：0,差：0.2
+                if u < 0.5:
+                    child.features[gene] += delta * (child.features[gene] - self.problem.variables_range[0])
+                else:
+                    child.features[gene] += delta * (self.problem.variables_range[1] - child.features[gene])
+                    
+                if child.features[gene] < self.problem.variables_range[0]:
+                    child.features[gene] = self.problem.variables_range[0]
+                if child.features[gene] > self.problem.variables_range[1]:
+                    child.features[gene] = self.problem.variables_range[1]
 
     def __get_delta(self):
         u = random.random()

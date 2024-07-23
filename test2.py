@@ -1,6 +1,9 @@
 
 import time,test
+from example import constent
 
-a = [[1,2,3],[4,5,6]]
-b = list(zip(*a))
-print(b)
+def feature2calcu(feature):
+    for i,season in enumerate(constent.SPECIAL_9DAYS.keys()):
+        print(season)
+
+feature2calcu('asdf')

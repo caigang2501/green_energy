@@ -27,7 +27,7 @@ class Problem:
 
         def gr(i):
             if i==0:
-                return round(random.random(),5)*0.002
+                return round(random.random(),5)*0.05
             elif i==1:
                 return round(random.random(),5)
             else:
@@ -52,58 +52,128 @@ class Problem:
             #     print(sum(power))
             return part
         
-        def get_plan():
-            if self.sp_individual>0:
-                
-                ft = []
-                spp = random.choice([1])
-                if spp==1:
+        def get_plan(sp_day,lh,lc):
+            adj_nomal = 2
+            ft = []
+            spp = random.choice([1])
+            if 'summer' in sp_day:
+                if self.sp_individual>0:
+                    if spp==1:
+                        for i in range(6):
+                            if i in [0,1]:
+                                ft.append(gr(2))
+                            elif i in [4,5]:# 储电 储气
+                                ft.append(gr(0)*3)
+                            elif i in [2,3]:
+                                if lc==0: 
+                                    if i==2:# 冷
+                                        ft.append([gr(0),gr(0),1,1])
+                                    else:# 热
+                                        ft.append([gr(1),0,0,gr(0),gr(0)])
+                                elif lc!=0: # 冷负荷
+                                    if i==2: # 冷
+                                        adj_rcc = lc/constent.RATED_CAPACITY
+                                        part = get_part([c[5][1],c[6][1],c[7],c[8]],3)
+                                        ft.append([p*adj_rcc for p in part])
+                                    else: # 热
+                                        part = get_part([c[2][0],c[3],c[4],[5][0],c[6][0]],4,change=False)
+                                        part = [p*ft[2][3] for p in part]
+                                        ft[2][0],ft[2][1] = min(ft[2][0]+part[3],1),min(ft[2][0]+part[4],1)
+                                        if ft[2][0]==0 or ft[2][1]==0:
+                                            ft[2].extend([0,0])
+                                        else:
+                                            ft[2].extend([(ft[2][0]-part[3])/ft[2][0],(ft[2][1]-part[4])/ft[2][1]])
+                                        ft.append(part[:3])
+                else:
                     for i in range(6):
                         if i in [0,1]:
                             ft.append(gr(2))
-                        elif i in [4,5]:
+                        elif i in [4,5]:# 储电 储气
                             ft.append(gr(0)*3)
                         elif i in [2,3]:
-                            if lh==0 and lc==0: 
-                                if i==2:
-                                    ft.append([gr(0),gr(0),gr(1),gr(1)])
-                                else:
-                                    ft.append([gr(1)*0.5,gr(0),gr(0),gr(0),gr(0)])
-                            elif lh!=0 and lc==0: # 热负荷
+                            if lc==0: 
+                                if i==2:# 冷
+                                    ft.append([gr(0),gr(0),1,1])
+                                else:# 热
+                                    ft.append([gr(1),0,0,gr(0),gr(0)])
+                            elif lc!=0: # 冷负荷
                                 if i==2: # 冷
-                                    ft.append([gr(0),gr(0),gr(1),gr(1)])
-                                else: # 热
-                                    ft.append(get_part([c[2][0],c[3],c[4],[5][0],c[6][0]],4))
-                            elif lh==0 and lc!=0: # 冷负荷
-                                if i==2: # 冷
+                                    adj_rcc = lc/constent.RATED_CAPACITY
                                     part = get_part([c[5][1],c[6][1],c[7],c[8]],3)
-                                    ft.append(part)
+                                    ft.append([p*adj_rcc*adj_nomal for p in part])
                                 else: # 热
                                     part = get_part([c[2][0],c[3],c[4],[5][0],c[6][0]],4,change=False)
                                     part = [p*ft[2][3] for p in part]
                                     ft[2][0],ft[2][1] = min(ft[2][0]+part[3],1),min(ft[2][0]+part[4],1)
                                     if ft[2][0]==0 or ft[2][1]==0:
                                         ft[2].extend([0,0])
-                                    else:
+                                    else:                                    
                                         ft[2].extend([(ft[2][0]-part[3])/ft[2][0],(ft[2][1]-part[4])/ft[2][1]])
-                                    ft.append(part[:3])
-                            else:
-                                ft.append(gr(1))
-                elif spp==2:
-                    pass
+                                    ft.append(part[:3])                   
+                    # ft = [round(random.random(),5) for _ in range(13)]
                 ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
-            else:
-                ft = [round(random.random(),5) for _ in range(13)]
+            elif 'winter' in sp_day:
+                if self.sp_individual>0:
+                    if spp==1:
+                        for i in range(6):
+                            if i in [0,1]:
+                                ft.append(gr(2))
+                            elif i in [4,5]: # 储电 储气
+                                ft.append(gr(0)*3)
+                            elif i in [2,3]:
+                                if lh==0: 
+                                    if i==2:
+                                        ft.append([0,0,0,0])
+                                    else:
+                                        adj_ch = 1.1
+                                        ft.append([gr(1),gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch])
+                                elif lh!=0: # 热负荷
+                                    if i==2: # 冷
+                                        ft.append([0,0,0,0])
+                                    else: # 热
+                                        adj_rch = lh/constent.RATED_CAPACITY
+                                        part = get_part([c[2][0],c[3],c[4],c[5][0],c[6][0]],4)
+                                        ft.append([p*adj_rch for p in part])
+                else:
+                    for i in range(6):
+                        if i in [0,1]:
+                            ft.append(gr(2))
+                        elif i in [4,5]: # 储电 储气
+                            ft.append(gr(0)*3)
+                        elif i in [2,3]:
+                            if lh==0: 
+                                if i==2:
+                                    ft.append([0,0,0,0])
+                                else:
+                                    adj_ch = 1.1
+                                    ft.append([gr(1),gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch])
+                            elif lh!=0: # 热负荷
+                                if i==2: # 冷
+                                    ft.append([0,0,0,0])
+                                else: # 热
+                                    adj_rch = lh/constent.RATED_CAPACITY
+                                    part = get_part([c[2][0],c[3],c[4],c[5][0],c[6][0]],4)
+                                    ft.append([p*adj_rch*adj_nomal for p in part])
+                ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
+            elif 'excessive' in sp_day:
+                if self.sp_individual>0:
+                    ft = [gr(2),gr(2),[0,0,0,0],[gr(1),0,0,0,0],gr(0)*3,gr(0)*3]
+                else:
+                    ft = [gr(2),gr(2),[0,0,0,0],[gr(1),0,0,0,0],gr(0)*3,gr(0)*3]
+
+                ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
+
             ft = [round(f,5) for f in ft]
             return ft
+        
         individual = Individual()
-
         energy_start = [lmt/3 for lmt in up[9:]] # 电 热 冷 气
         energy_rest = energy_start.copy()
         plan = []
         plan_season = copy.deepcopy(constent.EMPTY_SEASON)
 
         for season in constent.SPECIAL_9DAYS.keys():
+            rc = constent.RATED_CAPACITY
             ss,day = season.split('_')
             season_load = constent.LOAD[season]
             energy_rest = energy_start.copy() 
@@ -118,10 +188,10 @@ class Problem:
                 stb_cold,stb_heat = False,False
                 # 5678: '地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机' 
                 while True:
-                    ft = get_plan() 
+                    ft = get_plan(season,lh=lh,lc=lc) 
 
-                    run[2] = [ft[5]*ft[9]*up[5],ft[6]*ft[10]*up[6],ft[7]*up[7],ft[8]*up[8]]
-                    run_out[2] = [ft[5]*ft[9]*up[5]*c[5][1],ft[6]*ft[10]*up[6]*c[6][1],ft[7]*up[7]*c[7],ft[8]*up[8]*c[8]]
+                    run[2] = [ft[5]*ft[9]*rc/c[5][1],ft[6]*ft[10]*rc/c[6][1],ft[7]*rc/c[7],ft[8]*rc/c[8]]
+                    run_out[2] = [ft[5]*ft[9]*rc,ft[6]*ft[10]*rc,ft[7]*rc,ft[8]*rc]
                     if sum(run_out[2])+energy_rest[2]*sd['cold'][1]>lc:
                         if sum(run_out[2])-lc>0:
                             energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)*sd['cold'][0]
@@ -130,8 +200,8 @@ class Problem:
                         stb_cold = True
 
                     # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
-                    run[1] = [ft[3]*up[3],ft[2]*up[2],ft[4]*up[4],ft[5]*(1-ft[-4])*up[5],ft[6]*(1-ft[-3])*up[6]]
-                    run_out[1] = [ft[3]*up[3]*c[3],ft[2]*up[2]*c[2][0],ft[4]*up[4]*c[4],ft[5]*(1-ft[-4])*up[5]*c[5][0],ft[6]*(1-ft[-3])*up[6]*c[6][0]]
+                    run[1] = [ft[3]*rc/c[3],ft[2]*rc/c[2][0],ft[4]*rc/c[4],ft[5]*(1-ft[-4])*rc/c[5][0],ft[6]*(1-ft[-3])*rc/c[6][0]]
+                    run_out[1] = [ft[3]*rc,ft[2]*rc,ft[4]*rc,ft[5]*(1-ft[-4])*rc,ft[6]*(1-ft[-3])*rc]
                     if sum(run_out[1])-run_out[2][3]+energy_rest[1]*sd['heat'][1]>lh:
                         if sum(run_out[1])-run[2][3]-lh>0:
                             energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
@@ -178,8 +248,8 @@ class Problem:
                 individual.feature_run[season].append([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
 
                 # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
-                plan.append([*run_p,ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
-                plan_season[season].append([*run[0],ft[3]*up[3],ft[4]*up[4],ft[5]*up[5],ft[6]*up[6],ft[7]*up[7],ft[8]*up[8],*run[3]])
+                plan.append([*run_p,run[1][0],run[1][2],run[1][3]+run[2][0],run[1][4]+run[2][1],run[2][2],run[2][3],*run[3]])
+                plan_season[season].append([*run[0],*run_p,run[1][0],run[1][2],run[1][3]+run[2][0],run[1][4]+run[2][1],run[2][2],run[2][3],*run[3]])
                 
                 # df_ansx = pd.DataFrame(individual.feature_run,columns=constent.FEATURE_RUN_COLUME)
                 # df_ansx.to_csv('test.csv')
@@ -198,7 +268,7 @@ class Problem:
         individual.feature_plan = [max(column) for column in zip(*plan)]
 
         stg = list(zip(*plan))[-4:]
-        chg = [max([s[i+1]-s[i] for i in range(23)]) for s in stg]
+        chg = [max([s[i+1]-s[i] for i in range(23)]) for s in stg] # TODO 23改为215
         dis_chg = [max([s[i]-s[i+1] for i in range(23)]) for s in stg]
         individual.feature_plan.extend(chg+dis_chg)
 
