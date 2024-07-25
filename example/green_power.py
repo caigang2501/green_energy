@@ -17,17 +17,18 @@ save_path = 'example/result/'
 def f1(individual:Individual):
     feature_run = [run for sp_day in constent.SPECIAL_9DAYS.keys() for run in individual.feature_run[sp_day]]
 
-    constract_cost,run_cost = 0,0
-    for cpc,con in zip(individual.feature_plan,constent.CONSTRA_COST):
-        constract_cost += cpc*con
+    constract_cost = sum([cpc*con*1000 for cpc,con in zip(individual.feature_plan,constent.CONSTRA_COST)])/10000
+    run_cost = individual.benefit['be']+individual.benefit['bg']/constent.CH4_POWER*constent.CH4_PRICE/10000+individual.benefit['se']
+
+    maintain_cost = sum([cpc*con for cpc,con in zip(individual.feature_plan,constent.MAINTAIN_COST)])/10000
     
-    run_cost = individual.benefit['be']+individual.benefit['bg']/constent.CH4_POWER*constent.CH4_PRICE+individual.benefit['se']
+    r,x = constent.LOAN_RATE,constent.REPAYMENT_YEARS
+    loan_cost = constract_cost*constent.LOAN_PERSONT*r*(1+r)**x/((1+r)**x-1)
 
-    for row in feature_run:
-        buy,bs_elic = row[-2:]
-        pass
+    def all_discount(years):
+        return sum([1/(1+constent.DISCOUNT_RATE)**n for n in range(1,years)])
+    individual.economic = (maintain_cost+run_cost)*all_discount(20)+loan_cost*all_discount(15)+constract_cost*(1-constent.LOAN_PERSONT)*all_discount(1)
 
-    individual.economic = run_cost*constent.YEARS+constract_cost
     return individual.economic
 
 def f2(individual:Individual):
@@ -38,7 +39,7 @@ def f(individual:Individual):
 
 def solve(load):
 
-    constent.LOAD = constent.get_load(load)
+    constent.st.load = constent.get_load(load)
     problem = Problem(objectives=[f])
     evo = Evolution(problem,3,20)
     evol = evo.evolve()

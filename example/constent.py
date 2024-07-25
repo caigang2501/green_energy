@@ -3,6 +3,7 @@ import re
 class Singleton:
     def __init__(self):
         self.value = 0
+        self.load = None
 st = Singleton()
 
 objectives = []
@@ -15,8 +16,9 @@ result = result[6:]+result[:6]
 result = ','.join(result)
 print(result)
 
-YEARS = 5
+
 SP_INDIVIDUAL = 1
+
 # 排放系数
 ELIC_CO2 = 88.43
 CH4_CO2 = 221
@@ -24,9 +26,19 @@ CH4_CO2 = 221
 # CH4_PRICE = {0:2.5,300:3,600:3.75}
 CH4_PRICE = 3.2     # 天然气价格
 CH4_POWER = 9.88    # 热值 (kw/m**3)
-RATED_CAPACITY = 3000
+RATED_CAPACITY = 50000
 
+# 税率
+LAMBDA_INT = 0.25 # 所得税
+LAMBDA_VAT = 0.13 # 增值税
+LAMBDA_UMT = 0.05 # 城市建设维护税
+LAMBDA_UMT = 0.05 # 教育费附加费
 
+YEARS = 20
+DISCOUNT_RATE = 0.06
+LOAN_PERSONT = 0.8
+LOAN_RATE = 0.049
+REPAYMENT_YEARS = 15
 
 # SPECIAL_DAYS = {'summer':1,'excessive':1,'winter':1}
 SPECIAL_9DAYS = {'summer_workday':63,'summer_workend':25,'summer_holiday':4,
@@ -56,6 +68,7 @@ LEFT_ELEC_SELL_PRICE = (0.282900,0.282900,0.282900,0.282900,0.282900,0.282900,0.
 DEVICE_LIMIT = [2000,460,8000,4000,4000,800,2000,1000,4000,10000,10000,10000,2000]
 CONV_RATE = (0,0,(0.45, 0.38), 1, 0.97, (5, 4.4),(1.8, 2), 4, 1)
 CONSTRA_COST = (6.00,4.00,7.00,0.75,1.20,3.00,5.00,0.97,1.20,2.00,0.80,0.09,0.06)
+MAINTAIN_COST = (102.30,177.45,46.8,35.1,24.70,21.00,30.00,36.4,29.25,20.0,5.20,14.3,0.18)
 
 STORAGE_DEVICE = {'elic':(0.95,0.95,0.04),'heat':(0.87,0.87,0.06),'cold':(0.88,0.88,0.01),'gas':(0.95,0.95,0.01)}
 
@@ -70,14 +83,6 @@ DEVICE_INFO = {'ge':((2000,1,0,0),(460)),
                   'se':(0.95,0.95,0.04),'sh':(0.87,0.87,0.06),'sc':(0.88,0.88,0.01),'sg':(0.95,0.95,0.01)}
 
 
-
-# 税率
-LAMBDA_INT = 0.25 # 所得税
-LAMBDA_VAT = 0.13 # 增值税
-LAMBDA_UMT = 0.05 # 城市建设维护税
-LAMBDA_UMT = 0.05 # 教育费附加费
-
-
 # 绿电出力 起始点7
 PW = {'summer':(0.362267,0.322105,0.483797,0.478122,0.372791,0.29016,0.298849,0.266635,0.316447,0.37003,0.454681,0.403271,0.501074,0.763196,0.789281,0.9,0.806693,0.803224,0.535612,0.522578,0.498346,0.499053,0.426981,0.424977),
     'excessive':(0.362267,0.322105,0.483797,0.478122,0.372791,0.29016,0.298849,0.266635,0.316447,0.37003,0.454681,0.403271,0.501074,0.763196,0.789281,0.9,0.806693,0.803224,0.535612,0.522578,0.498346,0.499053,0.426981,0.424977),
@@ -85,35 +90,36 @@ PW = {'summer':(0.362267,0.322105,0.483797,0.478122,0.372791,0.29016,0.298849,0.
 PV = {'summer':(0.243302478,0.35163601,0.439081313,0.515778361,0.507663984,0.527701222,0.507382318,0.456149073,0.361254604,0.257487657,0.155956059,0.06200547,0.002529001,0,0,0,0,0,0,0,0,0,0.02197594,0.117727392),
       'excessive':(0.140746695,0.26761255,0.399646177,0.466050032,0.520851944,0.507330279,0.447865296,0.379575778,0.288664485,0.173976489,0.058192392,0.001424311,0,0,0,0,0,0,0,0,0,0,8.97935E-05,0.038806281),
       'winter':(0.00199863,0.076562208,0.175235196,0.254095679,0.311657419,0.313392362,0.297876761,0.241588511,0.145693229,0.045261327,0.000386542,0,0,0,0,0,0,0,0,0,0,0,0,0)}
-# 顺序依次为: 电 热 冷
-SUMMER_LOAD = [[305.91,330.78,405.82,455.80,468.11,467.84,467.57,467.30,511.00,510.75,466.56,453.74,403.27,346.49,333.66,314.56,201.28,175.65,181.93,181.68,181.41,181.14,180.90,281.07],
-              [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-              [2354.392,2588.2798,2730.55,2933.0834,3568.7488,3466.6552,3485.9122,3619.0633,3731.1507,3767.8024,3749.8442,3609.9121,0,0,0,0,0,0,0,0,0,0,0,0]]
 
-EXCESSIVE_LOAD = [[263.67,327.14,395.50,439.45,458.98,458.98,458.98,468.74,473.63,473.63,458.98,439.45,400.39,336.91,307.61,288.08,239.26,156.25,161.13,161.13,161.13,161.13,161.13,224.61],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+COP_COLD = 3.5
+COP_HEAT = 2
 
-WINTER_LOAD = [[347.69,363.49,410.91,463.59,495.20,495.20,495.20,505.73,511.00,511.00,489.93,458.32,416.18,368.76,331.89,268.67,200.19,136.97,136.97,136.97,136.97,136.97,136.97,263.40],
-               [3494.28,3421.09,3101.30,3045.76,3001.29,2923.62,2857.08,2856.66,2845.20,2833.75,2855.30,2865.84,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00],
-               [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+PUE = 1.25
+W_SUMMER_COLD = 0.2
+W_SUMMER_OTHER = 0.05
+
+W_EXCESSIVE_COLD = 0.18
+W_EXCESSIVE_OTHER = 0.07
+
+W_WINTER_COLD = 0.15
+W_WINTER_HEAT = 0.05
+W_WINTER_OTHER = 0.05
+    
 
 def get_load(load):
-    load_9 = {'summer_workday':[[m+n for m,n in zip(SUMMER_LOAD[0],load['workday'])],SUMMER_LOAD[1],SUMMER_LOAD[2]],
-            'summer_workend':[[m+n  for m,n in zip(SUMMER_LOAD[0],load['weekend'])],SUMMER_LOAD[1],SUMMER_LOAD[2]],
-            'summer_holiday':[[m+n  for m,n in zip(SUMMER_LOAD[0],load['holiday'])],SUMMER_LOAD[1],SUMMER_LOAD[2]],
-            'excessive_workday':[[m+n  for m,n in zip(EXCESSIVE_LOAD[0],load['workday'])],EXCESSIVE_LOAD[1],EXCESSIVE_LOAD[2]],
-            'excessive_workend':[[m+n  for m,n in zip(EXCESSIVE_LOAD[0],load['weekend'])],EXCESSIVE_LOAD[1],EXCESSIVE_LOAD[2]],
-            'excessive_holiday':[[m+n  for m,n in zip(EXCESSIVE_LOAD[0],load['holiday'])],EXCESSIVE_LOAD[1],EXCESSIVE_LOAD[2]],
-            'winter_workday':[[m+n  for m,n in zip(WINTER_LOAD[0],load['workday'])],WINTER_LOAD[1],WINTER_LOAD[2]],
-            'winter_workend':[[m+n  for m,n in zip(WINTER_LOAD[0],load['weekend'])],WINTER_LOAD[1],WINTER_LOAD[2]],
-            'winter_holiday':[[m+n  for m,n in zip(WINTER_LOAD[0],load['holiday'])],WINTER_LOAD[1],WINTER_LOAD[2]]}
+    load_9 = {'summer_workday':[[n*(1+W_SUMMER_OTHER) for n in load['workday']],[0]*24,[n*W_SUMMER_COLD*COP_COLD for n in load['workday']]],
+            'summer_workend':[[n*(1+W_SUMMER_OTHER) for n in load['weekend']],[0]*24,[n*W_SUMMER_COLD*COP_COLD for n in load['weekend']]],
+            'summer_holiday':[[n*(1+W_SUMMER_OTHER) for n in load['holiday']],[0]*24,[n*W_SUMMER_COLD*COP_COLD for n in load['holiday']]],
+            'excessive_workday':[[n*(1+W_SUMMER_OTHER) for n in load['workday']],[0]*24,[n*W_EXCESSIVE_COLD*COP_COLD for n in load['workday']]],
+            'excessive_workend':[[n*(1+W_SUMMER_OTHER) for n in load['weekend']],[0]*24,[n*W_EXCESSIVE_COLD*COP_COLD for n in load['weekend']]],
+            'excessive_holiday':[[n*(1+W_SUMMER_OTHER) for n in load['holiday']],[0]*24,[n*W_EXCESSIVE_COLD*COP_COLD for n in load['holiday']]],
+            'winter_workday':[[n*(1+W_SUMMER_OTHER) for n in load['workday']],[n*W_WINTER_HEAT*COP_HEAT for n in load['workday']],[n*W_WINTER_COLD*COP_COLD for n in load['workday']]],
+            'winter_workend':[[n*(1+W_SUMMER_OTHER) for n in load['weekend']],[n*W_WINTER_HEAT*COP_HEAT for n in load['weekend']],[n*W_WINTER_COLD*COP_COLD for n in load['weekend']]],
+            'winter_holiday':[[n*(1+W_SUMMER_OTHER) for n in load['holiday']],[n*W_WINTER_HEAT*COP_HEAT for n in load['holiday']],[n*W_WINTER_COLD*COP_COLD for n in load['holiday']]]}
 
     return load_9
 
-LOAD = None
 
-a = WINTER_LOAD[0]
-# print(a[6:]+a[:6])
 
 
 

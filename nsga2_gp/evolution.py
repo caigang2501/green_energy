@@ -1,4 +1,4 @@
-from nsga2_gp.utils import NSGA2Utils,my_excel
+from nsga2_gp.utils import NSGA2Utils,to_excel
 from nsga2_gp.population import Population
 from example import constent
 from tqdm import tqdm
@@ -20,11 +20,11 @@ class Evolution:
         self.utils.fast_nondominated_sort(self.population)
         for front in self.population.fronts:
             self.utils.calculate_crowding_distance(front)
+        for i in range(1):
+            to_excel(self.population.fronts[i],f'creat{i}')
         children = self.utils.create_children(self.population)
         returned_population = None
         print('creat',constent.st.value)
-        # for i in range(10):
-        #     my_excel(self.population.fronts[i],f'creat{i}')
         for i in tqdm(range(self.num_of_generations)):
 
             self.population.extend(children)

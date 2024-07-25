@@ -12,6 +12,7 @@ def main(load):
     for v in run.values():
         v.pop(constent.ENGLISH_DICT['典型日种类'])
         v.pop(constent.ENGLISH_DICT['时间'])
+        
     return_val = {'run':run,
         'plan':{constent.ENGLISH_DICT[n]:v for n,v in zip(constent.FEATURE_PLAN_COLUME,evol[0].feature_plan)},
         'result':{'obj':evol[0].objectives[0],'dis_co2':evol[0].dis_co2,'economic':evol[0].economic}}

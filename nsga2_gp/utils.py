@@ -9,7 +9,9 @@ from example.constent import CONV_RATE as c
 from example.constent import STORAGE_DEVICE as sd
 
 
-def my_excel(evol,name):
+
+
+def to_excel(evol,name):
     with pd.ExcelWriter(f'example/result/{name}.xlsx') as writer:
         for i,individual in enumerate(evol):
             feature_run = [run for sp_day in constent.SPECIAL_9DAYS.keys() for run in individual.feature_run[sp_day]]
@@ -40,13 +42,13 @@ def calcu_feature(individual:Individual):
 
     for season in constent.SPECIAL_9DAYS.keys():
         ss,day = season.split('_')
-        season_load = constent.LOAD[season]
+        season_load = constent.st.load[season]
         energy_rest = energy_start.copy() 
         run = [[],[],[],[],[0,0]] # 输入功率
         run_out = [[],[],[]]
         time = 6
         for le,lh,lc,ft,pw,pv in zip(season_load[0],season_load[1],season_load[2],feature_calcu[season],constent.PW[ss],constent.PV[ss]):
-
+            # ft = [f if i in [] else f for i,f in enumerate(ft)]
             time = 1 if time+1>24 else time+1
             run[3] = energy_rest.copy()
             
@@ -59,7 +61,7 @@ def calcu_feature(individual:Individual):
                 else:
                     energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)/sd['cold'][1]
             else:
-                # print('cold',sum(run_out[2])-lc)
+                # print('cold',sum(run_out[2])-lc,season,time)
                 return False
                 
             # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
@@ -71,7 +73,7 @@ def calcu_feature(individual:Individual):
                     else:
                         energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
             else:
-                # print('heat',sum(run_out[1])-run[2][3]-lh)
+                # print('heat',sum(run_out[1])-run[2][3]-lh,season,time)
                 return False                  
             
             # CH4
@@ -110,8 +112,8 @@ def calcu_feature(individual:Individual):
         elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
         elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
          
-    individual.benefit['be'] = elic_buy
-    individual.benefit['se'] = elic_sell
+    individual.benefit['be'] = elic_buy/10000
+    individual.benefit['se'] = elic_sell/10000
     individual.benefit['bg'] = ch4_cost
     individual.dis_co2 = constent.CH4_CO2*ch4_cost + constent.ELIC_CO2*elic_buy
     individual.feature_plan = [max(column) for column in zip(*plan)]
@@ -123,6 +125,98 @@ def calcu_feature(individual:Individual):
     # adjust(individual)
 
     return True
+
+
+def sutable_individual(individual:Individual):
+    result = []
+    energy_start = [lmt/3 for lmt in up[9:]] # 电 热 冷 气
+    plan = []
+    feature_calcu = feature2calcu(individual.features)
+    
+    individual.feature_plan = []
+    plan_season = copy.deepcopy(constent.EMPTY_SEASON)
+    rc = constent.RATED_CAPACITY
+    
+
+    for season in constent.SPECIAL_9DAYS.keys():
+        ss,day = season.split('_')
+        season_load = constent.st.load[season]
+        energy_rest = energy_start.copy() 
+        run = [[],[],[],[],[0,0]] # 输入功率
+        run_out = [[],[],[]]
+        time = 6
+        i = 0
+        for le,lh,lc,ft,pw,pv in zip(season_load[0],season_load[1],season_load[2],feature_calcu[season],constent.PW[ss],constent.PV[ss]):
+
+            time = 1 if time+1>24 else time+1
+            run[3] = energy_rest.copy()
+            
+            # 5678: '地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机' 
+            run[2] = [ft[5]*ft[9]*rc/c[5][1],ft[6]*ft[10]*rc/c[6][1],ft[7]*rc/c[7],ft[8]*rc/c[8]]
+            run_out[2] = [ft[5]*ft[9]*rc,ft[6]*ft[10]*rc,ft[7]*rc,ft[8]*rc]
+            if sum(run_out[2])+energy_rest[2]*sd['cold'][1]>lc:
+                if sum(run_out[2])-lc>0:
+                    energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)*sd['cold'][0]
+                else:
+                    energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)/sd['cold'][1]
+            else:
+                print('cold',sum(run_out[2])-lc,season,time)
+                return False
+                
+            # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
+            run[1] = [ft[3]*rc/c[3],ft[2]*rc/c[2][0],ft[4]*rc/c[4],ft[5]*(1-ft[-4])*rc/c[5][0],ft[6]*(1-ft[-3])*rc/c[6][0]]
+            run_out[1] = [ft[3]*rc,ft[2]*rc,ft[4]*rc,ft[5]*(1-ft[-4])*rc,ft[6]*(1-ft[-3])*rc]
+            if sum(run_out[1])-run_out[2][3]+energy_rest[1]*sd['heat'][1]>lh:
+                    # if season=='summer_workday' and time==8:
+                    #     print('test')
+                    #     print(energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0])
+                    #     print(energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1])
+                    if sum(run_out[1])-run[2][3]-lh>0:
+                        energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
+                    else:
+                        energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
+            else:
+                print('heat',sum(run_out[1])-run[2][3]-lh,season,time)
+                return False                  
+            
+            # CH4
+            gas_cost = run[1][0]+run[1][1]
+            gas_chg = ft[11]*energy_start[0]*3-energy_rest[3] if energy_rest[3]<gas_cost/sd['gas'][1] else ft[11]*(energy_start[3]*3-energy_rest[3]+gas_cost/sd['gas'][1])-gas_cost/sd['gas'][1]
+            
+            # +储 -放
+            if gas_chg>0:
+                run[4][0] = gas_chg/sd['gas'][0]+gas_cost # '买燃气'
+            else:
+                run[4][0] = gas_chg*sd['gas'][1]+gas_cost
+            energy_rest[3] = (energy_rest[3]+gas_chg)*(1-sd['gas'][2])
+
+            # '风电','光伏','热电产电'
+            elic_chg = ft[12]*energy_start[0]*3*0.8-(energy_rest[0]-energy_start[0]*3*0.2)
+            energy_rest[0] = (energy_rest[0]+elic_chg)*(1-sd['elic'][2])
+            elic_o = elic_chg/sd['elic'][0] if elic_chg>0 else elic_chg*sd['elic'][1]
+            elic_cost = sum(run[2][:3])+sum(run[1][2:])+le-run_out[1][1]+elic_o
+            run[0] = [ft[0]*up[0]*pw,ft[1]*up[1]*pv,run[1][1]]
+            run_p = [ft[0]*up[0],ft[1]*up[1],run[1][1]]
+            run_out[0] = [ft[0]*up[0],ft[1]*up[1],run[1][1]*c[2][1]]
+
+            # rest_elic +卖 -买
+            run[4][1] = sum(run_out[0])-elic_cost # '买卖电'
+
+            # time,le,lh,lc,'风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵产热','空气源热泵产热','地源热泵制冷','空气源热泵制冷','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备','买燃气','买卖电'
+            e = individual.feature_run[season][i]==[season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]]
+            if not e:
+                result.append([season,time])
+                print(individual.feature_run[season][i])
+                print([season,time,le,lh,lc,*run[0],run[1][0],*run[1][2:],*run[2],*run[3],*run[4]])
+                pass
+            # '风力','光伏','热电联产','燃气锅炉','电锅炉','地源热泵','空气源热泵','电制冷机','吸收式制冷机','储电设备','储热设备','储冷设备','储气设备'
+            plan.append([*run_p,run[1][0],run[1][2],run[1][3]+run[2][0],run[1][4]+run[2][1],run[2][2],run[2][3],*run[3]])
+            plan_season[season].append([*run[0],*run_p,run[1][0],run[1][2],run[1][3]+run[2][0],run[1][4]+run[2][1],run[2][2],run[2][3],*run[3]])
+        
+            i += 1
+
+    return True
+
 
 def adjust(individual:Individual):
     eng_start = individual.feature_run[0][11:15]
@@ -164,9 +258,6 @@ def feature_hour(feature):
             feature_cat.append(feature[index:index+13])
     return feature_cat
 
-def sutable(individual:Individual):
-    # TODO
-    return True
 
 class NSGA2Utils:
 
@@ -185,6 +276,8 @@ class NSGA2Utils:
         population = Population()
         for _ in range(self.num_of_individuals):
             individual = self.problem.generate_individual()
+            # if not sutable_individual(individual):
+            #     print('unsutable_individual')
             self.problem.calculate_objectives(individual)
             population.append(individual)
         return population
@@ -254,8 +347,12 @@ class NSGA2Utils:
                 self.__mutate(child2)
                 if calcu_feature(child1) and calcu_feature(child2):
                     break
-                # if not calcu_feature(parent1) or not calcu_feature(parent2):
-                #     print('wrong father') # 打开会有bug
+                else:
+                    # print(parent1.features[5:11],parent1.features[5]*parent1.features[9]+parent1.features[6]*parent1.features[10]+parent1.features[7]+parent1.features[8])
+                    # print(parent2.features[5:11],parent2.features[5]*parent2.features[9]+parent2.features[6]*parent2.features[10]+parent2.features[7]+parent2.features[8])
+                    # print(child1.features[5:11],child1.features[5]*child1.features[9]+child1.features[6]*child1.features[10]+child1.features[7]+child1.features[8])
+                    # print(child2.features[5:11],child2.features[5]*child2.features[9]+child2.features[6]*child2.features[10]+child2.features[7]+child2.features[8])
+                    pass
             self.problem.calculate_objectives(child1)
             self.problem.calculate_objectives(child2)
             children.append(child1)

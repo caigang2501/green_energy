@@ -6,6 +6,7 @@ from example.constent import CONV_RATE as c
 from example.constent import STORAGE_DEVICE as sd
 from nsga2_gp.utils import adjust
 
+# TODO 修改置0规则
 
 class Problem:
 
@@ -17,7 +18,7 @@ class Problem:
 
     def generate_empty_individual(self):
             individual = Individual()
-            individual.features = [round(random.random(),2) for _ in range(936*3)]
+            individual.features = [random.random() for _ in range(936*3)]
             return individual
     
 
@@ -27,14 +28,13 @@ class Problem:
 
         def gr(i):
             if i==0:
-                return round(random.random(),5)*0.05
+                return random.random()*0.05
             elif i==1:
-                return round(random.random(),5)
+                return random.random()
             else:
-                return self.variables_range[1]*0.9+round(random.random()*0.1,5)
+                return self.variables_range[1]*0.9+random.random()*0.1
         
         def get_part(sc,k,change=False):
-            pda = 1 #总part比上总容量
             choc = sorted(random.choices(list(range(100)),k=k))
             choc.insert(0,0),choc.append(100)
             part = [(choc[i+1]-choc[i])*0.01 for i in range(k+1)]
@@ -42,9 +42,9 @@ class Problem:
             #     power = [f*p for f,p in zip(part,up[5:9])]
             #     print(sum(power))
             if change:
-                part = [(p+random.normalvariate(0,0.05))*pda for idx,p in enumerate(part)]
+                part = [(p+random.normalvariate(0,0.05)) for idx,p in enumerate(part)]
             else:
-                part = [p*pda for idx,p in enumerate(part)]
+                part = [p for idx,p in enumerate(part)]
             part = [0 if p<0 else p for p in part]
             # if len(part)==4:
             #     power = [f*p*c for f,p,c in zip(part,up[5:9],sc)]
@@ -53,17 +53,19 @@ class Problem:
             return part
         
         def get_plan(sp_day,lh,lc):
-            adj_nomal = 2
+            adj_nomal_cold = 2
+            adj_nomal_heat = 4
+            adj_charge = 4
             ft = []
             spp = random.choice([1])
-            if 'summer' in sp_day:
+            if 'summer' in sp_day or 'excessive' in sp_day: # 只有冷负荷
                 if self.sp_individual>0:
                     if spp==1:
                         for i in range(6):
                             if i in [0,1]:
                                 ft.append(gr(2))
                             elif i in [4,5]:# 储电 储气
-                                ft.append(gr(0)*3)
+                                ft.append(gr(0)*adj_charge)
                             elif i in [2,3]:
                                 if lc==0: 
                                     if i==2:# 冷
@@ -89,93 +91,134 @@ class Problem:
                         if i in [0,1]:
                             ft.append(gr(2))
                         elif i in [4,5]:# 储电 储气
-                            ft.append(gr(0)*3)
+                            ft.append(gr(0)*adj_charge)
                         elif i in [2,3]:
                             if lc==0: 
                                 if i==2:# 冷
                                     ft.append([gr(0),gr(0),1,1])
                                 else:# 热
                                     ft.append([gr(1),0,0,gr(0),gr(0)])
-                            elif lc!=0: # 冷负荷
+                            elif lc!=0: 
                                 if i==2: # 冷
                                     adj_rcc = lc/constent.RATED_CAPACITY
                                     part = get_part([c[5][1],c[6][1],c[7],c[8]],3)
-                                    ft.append([p*adj_rcc*adj_nomal for p in part])
+                                    ft.append([p*adj_rcc*adj_nomal_cold for p in part])
                                 else: # 热
                                     part = get_part([c[2][0],c[3],c[4],[5][0],c[6][0]],4,change=False)
-                                    part = [p*ft[2][3] for p in part]
+                                    part = [p*ft[2][3]*adj_nomal_heat for p in part]
                                     ft[2][0],ft[2][1] = min(ft[2][0]+part[3],1),min(ft[2][0]+part[4],1)
                                     if ft[2][0]==0 or ft[2][1]==0:
                                         ft[2].extend([0,0])
                                     else:                                    
                                         ft[2].extend([(ft[2][0]-part[3])/ft[2][0],(ft[2][1]-part[4])/ft[2][1]])
                                     ft.append(part[:3])                   
-                    # ft = [round(random.random(),5) for _ in range(13)]
-                ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
-            elif 'winter' in sp_day:
+                    # ft = [random.random() for _ in range(13)]
+                
+            elif 'winter' in sp_day: # 冷热都有
                 if self.sp_individual>0:
                     if spp==1:
                         for i in range(6):
                             if i in [0,1]:
                                 ft.append(gr(2))
-                            elif i in [4,5]: # 储电 储气
-                                ft.append(gr(0)*3)
+                            elif i in [4,5]:# 储电 储气
+                                ft.append(gr(0)*adj_charge)
                             elif i in [2,3]:
-                                if lh==0: 
-                                    if i==2:
-                                        ft.append([0,0,0,0])
-                                    else:
-                                        adj_ch = 1.1
-                                        ft.append([gr(1),gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch])
-                                elif lh!=0: # 热负荷
-                                    if i==2: # 冷
-                                        ft.append([0,0,0,0])
-                                    else: # 热
-                                        adj_rch = lh/constent.RATED_CAPACITY
-                                        part = get_part([c[2][0],c[3],c[4],c[5][0],c[6][0]],4)
-                                        ft.append([p*adj_rch for p in part])
+                                if i==2: # 冷
+                                    adj_rcc = lc/constent.RATED_CAPACITY
+                                    part = get_part([c[5][1],c[6][1],c[7],c[8]],3)
+                                    ft.append([p*adj_rcc for p in part])
+                                else: # 热
+                                    adj_rch = lh/constent.RATED_CAPACITY+ft[2][3]
+                                    part = get_part([c[2][0],c[3],c[4],[5][0],c[6][0]],4,change=False)
+                                    part = [p*adj_rch for p in part]
+                                    ft[2][0],ft[2][1] = ft[2][0]+part[3],ft[2][1]+part[4]
+                                    ft[2].append(0 if ft[2][0]==0 else (ft[2][0]-part[3])/ft[2][0])
+                                    ft[2].append(0 if ft[2][0]==0 else (ft[2][1]-part[4])/ft[2][1])
+                                    ft.append(part[:3])
                 else:
                     for i in range(6):
                         if i in [0,1]:
                             ft.append(gr(2))
-                        elif i in [4,5]: # 储电 储气
-                            ft.append(gr(0)*3)
+                        elif i in [4,5]:# 储电 储气
+                            ft.append(gr(0)*adj_charge)
                         elif i in [2,3]:
-                            if lh==0: 
-                                if i==2:
-                                    ft.append([0,0,0,0])
-                                else:
-                                    adj_ch = 1.1
-                                    ft.append([gr(1),gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch])
-                            elif lh!=0: # 热负荷
-                                if i==2: # 冷
-                                    ft.append([0,0,0,0])
-                                else: # 热
-                                    adj_rch = lh/constent.RATED_CAPACITY
-                                    part = get_part([c[2][0],c[3],c[4],c[5][0],c[6][0]],4)
-                                    ft.append([p*adj_rch*adj_nomal for p in part])
-                ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
-            elif 'excessive' in sp_day:
-                if self.sp_individual>0:
-                    ft = [gr(2),gr(2),[0,0,0,0],[gr(1),0,0,0,0],gr(0)*3,gr(0)*3]
-                else:
-                    ft = [gr(2),gr(2),[0,0,0,0],[gr(1),0,0,0,0],gr(0)*3,gr(0)*3]
+                            if i==2: # 冷
+                                adj_rcc = lc/constent.RATED_CAPACITY
+                                part = get_part([c[5][1],c[6][1],c[7],c[8]],3)
+                                ft.append([p*adj_rcc*adj_nomal_cold for p in part])
+                            else: # 热
+                                adj_rch = lh/constent.RATED_CAPACITY+ft[2][3]
+                                part = get_part([c[2][0],c[3],c[4],[5][0],c[6][0]],4,change=False)
+                                part = [p*adj_rch*adj_nomal_heat for p in part]
+                                ft[2][0],ft[2][1] = ft[2][0]+part[3],ft[2][1]+part[4]
+                                ft[2].append(0 if ft[2][0]==0 else (ft[2][0]-part[3])/ft[2][0])
+                                ft[2].append(0 if ft[2][0]==0 else (ft[2][1]-part[4])/ft[2][1])
+                                ft.append(part[:3])                 
+            else:
+                pass
+                # elif 'winter' in sp_day: # 只有热负荷
+                #     if self.sp_individual>0:
+                #         if spp==1:
+                #             for i in range(6):
+                #                 if i in [0,1]:
+                #                     ft.append(gr(2))
+                #                 elif i in [4,5]: # 储电 储气
+                #                     ft.append(gr(0)*adj_charge)
+                #                 elif i in [2,3]:
+                #                     if lh==0: 
+                #                         if i==2:
+                #                             ft.append([0,0,0,0])
+                #                         else:
+                #                             adj_ch = 1.1
+                #                             ft.append([gr(1),gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch])
+                #                     elif lh!=0: # 热负荷
+                #                         if i==2: # 冷
+                #                             ft.append([0,0,0,0])
+                #                         else: # 热
+                #                             adj_rch = lh/constent.RATED_CAPACITY
+                #                             part = get_part([c[2][0],c[3],c[4],c[5][0],c[6][0]],4)
+                #                             ft.append([p*adj_rch for p in part])
+                #     else:
+                #         for i in range(6):
+                #             if i in [0,1]:
+                #                 ft.append(gr(2))
+                #             elif i in [4,5]: # 储电 储气
+                #                 ft.append(gr(0)*adj_charge)
+                #             elif i in [2,3]:
+                #                 if lh==0: 
+                #                     if i==2:
+                #                         ft.append([0,0,0,0])
+                #                     else:
+                #                         adj_ch = 1.1
+                #                         ft.append([gr(1),gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch,gr(0)*adj_ch])
+                #                 elif lh!=0: # 热负荷
+                #                     if i==2: # 冷
+                #                         ft.append([0,0,0,0])
+                #                     else: # 热
+                #                         adj_rch = lh/constent.RATED_CAPACITY
+                #                         part = get_part([c[2][0],c[3],c[4],c[5][0],c[6][0]],4)
+                #                         ft.append([p*adj_rch*adj_nomal for p in part])
+                #     ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
+                # elif 'excessive' in sp_day: # 冷热都没有
+                #     if self.sp_individual>0:
+                #         ft = [gr(2),gr(2),[0,0,0,0],[gr(1),0,0,0,0],gr(0)*3,gr(0)*3]
+                #     else:
+                #         ft = [gr(2),gr(2),[0,0,0,0],[gr(1),0,0,0,0],gr(0)*3,gr(0)*3]
 
-                ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
+                #     ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
 
-            ft = [round(f,5) for f in ft]
+            ft = [ft[0],ft[1],*ft[3],*ft[2],ft[4],ft[5]]
             return ft
         
         individual = Individual()
         energy_start = [lmt/3 for lmt in up[9:]] # 电 热 冷 气
-        energy_rest = energy_start.copy()
         plan = []
         plan_season = copy.deepcopy(constent.EMPTY_SEASON)
+        rc = constent.RATED_CAPACITY
 
         for season in constent.SPECIAL_9DAYS.keys():
-            rc = constent.RATED_CAPACITY
             ss,day = season.split('_')
-            season_load = constent.LOAD[season]
+            season_load = constent.st.load[season]
             energy_rest = energy_start.copy() 
             run = [[],[],[],[],[0,0]] # 输入功率
             run_out = [[],[],[]] # 输出功率
@@ -194,9 +237,9 @@ class Problem:
                     run_out[2] = [ft[5]*ft[9]*rc,ft[6]*ft[10]*rc,ft[7]*rc,ft[8]*rc]
                     if sum(run_out[2])+energy_rest[2]*sd['cold'][1]>lc:
                         if sum(run_out[2])-lc>0:
-                            energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)*sd['cold'][0]
+                            cold_rest = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)*sd['cold'][0]
                         else:
-                            energy_rest[2] = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)/sd['cold'][1]
+                            cold_rest = energy_rest[2]*(1-sd['cold'][2]) + (sum(run_out[2])-lc)/sd['cold'][1]
                         stb_cold = True
 
                     # 32456'燃气锅炉','热电产热','电锅炉','地源热泵产热','空气源热泵产热'
@@ -204,15 +247,16 @@ class Problem:
                     run_out[1] = [ft[3]*rc,ft[2]*rc,ft[4]*rc,ft[5]*(1-ft[-4])*rc,ft[6]*(1-ft[-3])*rc]
                     if sum(run_out[1])-run_out[2][3]+energy_rest[1]*sd['heat'][1]>lh:
                         if sum(run_out[1])-run[2][3]-lh>0:
-                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
+                            hot_rest = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)*sd['heat'][0]
                         else:
-                            energy_rest[1] = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
+                            hot_rest = energy_rest[1]*(1-sd['heat'][2]) + (sum(run_out[1])-run[2][3]-lh)/sd['heat'][1]
                         stb_heat = True 
                     
                     if stb_cold and stb_heat:
+                        energy_rest[2],energy_rest[1] = cold_rest,hot_rest
                         break
                     else:
-                        # print(season,time)
+                        # print(season,time,constent.st.value,'cold:',stb_cold,'heat:',stb_heat,self.sp_individual,sum(run_out[1])-run_out[2][3]+energy_rest[1]*sd['heat'][1]-lh,lc,lh,run_out[2][3])
                         constent.st.value += 1
                         stb_cold,stb_heat = False,False
 
@@ -260,8 +304,8 @@ class Problem:
             elic_buy += sum([-row[-1]*p if row[-1]<0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
             elic_sell += sum([-row[-1]*p if row[-1]>0 else 0 for row,p in zip(individual.feature_run[season],constent.ELEC_SELL_PRICE)])*constent.SPECIAL_9DAYS[season]
         
-        individual.benefit['be'] = elic_buy
-        individual.benefit['se'] = elic_sell
+        individual.benefit['be'] = elic_buy/10000
+        individual.benefit['se'] = elic_sell/10000
         individual.benefit['bg'] = ch4_cost
         
         individual.dis_co2 = constent.CH4_CO2*ch4_cost + constent.ELIC_CO2*elic_buy
